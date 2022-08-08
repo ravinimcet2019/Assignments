@@ -14,7 +14,7 @@ public class LinkedListDemo {
         linkedList.add("my");
         linkedList.add("name");
         linkedList.add("is");
-        linkedList.add("sahil");
+        linkedList.add("ravi");
         System.out.println("Content of LinkedList: " +linkedList);
 
         //addFirst:
@@ -26,7 +26,7 @@ public class LinkedListDemo {
         System.out.println("first value: "+linkedList.get(0));
 
         //set
-        linkedList.set(1, "rashid");
+        linkedList.set(1, "rathore");
         System.out.println(linkedList.get(1));
 
         //remove first element:
