@@ -126,3 +126,105 @@ public ResponseDto<String> merchantLogin(MerchantLoginRequest merchantLoginReque
         }
     }
 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- liquibase formatted sql
+-- changeset Ravi:1
+CREATE TABLE MERCHANT_USER (
+    ID RAW(16) DEFAULT SYS_GUID() PRIMARY KEY NOT NULL,
+    MID VARCHAR2(255) NOT NULL,
+    PARENT_USERID VARCHAR2(255) NOT NULL,
+    USER_ID VARCHAR2(255) UNIQUE NOT NULL,
+    FIRST_NAME VARCHAR2(255) NOT NULL,
+    MIDDLE_NAME VARCHAR2(255),
+    LAST_NAME VARCHAR2(255) NOT NULL,
+    EMAIL VARCHAR2(255) UNIQUE,
+    PRIMARY_PHONE VARCHAR2(255) UNIQUE,
+    SECONDARY_PHONE VARCHAR2(255),
+    MOBILE_PHONE VARCHAR2(255) UNIQUE NOT NULL,
+    OFFICE_PHONE VARCHAR2(255) NOT NULL,
+    COUNTRY_CODE VARCHAR2(255) NOT NULL,
+    STATE_CODE VARCHAR2(255) NOT NULL,
+    PIN_CODE VARCHAR2(255) NOT NULL,
+    CITY VARCHAR2(255) NOT NULL,
+    ROLE VARCHAR2(255) NOT NULL,
+    STATUS VARCHAR2(255) NOT NULL,
+    PASSWORD VARCHAR2(255) NOT NULL,
+    LAST_PASSWORD_CHANGE NUMBER NOT NULL,
+    PASSWORD_EXPIRY_TIME NUMBER NOT NULL,
+    LOGIN_FAIL_ATTEMPT NUMBER NOT NULL,
+    LAST_SUCCESS_LOGIN NUMBER NOT NULL,
+    LAST_FAIL_LOGIN NUMBER NOT NULL,
+    CREATED_DATE TIMESTAMP NOT NULL
+);
+
+
+
+package com.epay.merchant.entity;
+import jakarta.persistence.GeneratedValue;
+import lombok.*;
+import org.hibernate.annotations.GenericGenerator;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.util.Date;
+import java.util.UUID;
+
+
+/**
+ * Class Name: Merchant
+ * *
+ * Description:
+ * *
+ * Author: V1017903(bhushan wadekar)
+ * <p>
+ * Copyright (c) 2024 [State Bank of India]
+ * All rights reserved
+ * *
+ * Version:1.0
+ */
+
+@Getter
+@Setter
+@Entity
+@Builder
+@AllArgsConstructor
+@Table(name = "MERCHANT_USER")
+@NoArgsConstructor
+public class Merchant {
+
+    @Id
+    @GeneratedValue(generator = "uuid")
+    @GenericGenerator(name = "uuid", strategy = "uuid2")
+    private UUID id;
+
+
+    private String mId;
+    private String parentUserId;
+    private String userId;
+    private String firstName;
+    private String middleName;
+    private String lastName;
+    private String email;
+    private String primaryPhone;
+    private String secondaryPhone;
+    private String mobilePhone;
+    private String officePhone;
+    private String countryCode;
+    private String stateCode;
+    private String pinCode;
+    private String city;
+    private String role;
+    private String status;
+    private String password;
+    private long lastPasswordChange;
+    private long PasswordExpiryTime;
+    private long loginFailAttempt;
+    private long lastSuccessLogin;
+    private long lastFailLogin;
+    private Date createdDate;
+
+}
+
+
