@@ -291,5 +291,112 @@ public interface MerchantRepository extends JpaRepository<Merchant, UUID> {
     boolean isExitsByUserIdOrEmailOrMobilePhone(@Param("userId") String userId);
 }
 
+--------------------------------------------------
+
+package com.epay.merchant.entity;
+
+import lombok.*;
+import org.hibernate.annotations.GenericGenerator;
+
+import javax.persistence.*;
+import java.util.Date;
+import java.util.UUID;
+
+/**
+ * Class Name: Merchant
+ * Description: Entity class for MERCHANT_USER table.
+ * Author: V1017903 (Bhushan Wadekar)
+ * Copyright (c) 2024 [State Bank of India]
+ * Version: 1.0
+ */
+
+@Getter
+@Setter
+@Entity
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "MERCHANT_USER")
+public class Merchant {
+
+    @Id
+    @GeneratedValue(generator = "uuid")
+    @GenericGenerator(name = "uuid", strategy = "uuid2")
+    @Column(name = "ID", columnDefinition = "RAW(16)")
+    private UUID id;
+
+    @Column(name = "MID", nullable = false)
+    private String mId;
+
+    @Column(name = "PARENT_USERID", nullable = false)
+    private String parentUserId;
+
+    @Column(name = "USER_ID", nullable = false, unique = true)
+    private String userId;
+
+    @Column(name = "FIRST_NAME", nullable = false)
+    private String firstName;
+
+    @Column(name = "MIDDLE_NAME")
+    private String middleName;
+
+    @Column(name = "LAST_NAME", nullable = false)
+    private String lastName;
+
+    @Column(name = "EMAIL", unique = true)
+    private String email;
+
+    @Column(name = "PRIMARY_PHONE", unique = true)
+    private String primaryPhone;
+
+    @Column(name = "SECONDARY_PHONE")
+    private String secondaryPhone;
+
+    @Column(name = "MOBILE_PHONE", nullable = false, unique = true)
+    private String mobilePhone;
+
+    @Column(name = "OFFICE_PHONE", nullable = false)
+    private String officePhone;
+
+    @Column(name = "COUNTRY_CODE", nullable = false)
+    private String countryCode;
+
+    @Column(name = "STATE_CODE", nullable = false)
+    private String stateCode;
+
+    @Column(name = "PIN_CODE", nullable = false)
+    private String pinCode;
+
+    @Column(name = "CITY", nullable = false)
+    private String city;
+
+    @Column(name = "ROLE", nullable = false)
+    private String role;
+
+    @Column(name = "STATUS", nullable = false)
+    private String status;
+
+    @Column(name = "PASSWORD", nullable = false)
+    private String password;
+
+    @Column(name = "LAST_PASSWORD_CHANGE", nullable = false)
+    private long lastPasswordChange;
+
+    @Column(name = "PASSWORD_EXPIRY_TIME", nullable = false)
+    private long passwordExpiryTime;
+
+    @Column(name = "LOGIN_FAIL_ATTEMPT", nullable = false)
+    private long loginFailAttempt;
+
+    @Column(name = "LAST_SUCCESS_LOGIN", nullable = false)
+    private long lastSuccessLogin;
+
+    @Column(name = "LAST_FAIL_LOGIN", nullable = false)
+    private long lastFailLogin;
+
+    @Column(name = "CREATED_DATE", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createdDate;
+}
 
 
