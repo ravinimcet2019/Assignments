@@ -1,4 +1,4 @@
-OOPS Assignment
+huOOPS Assignment
 kuch bhi...
 ha bhai kuch bhi...
 
@@ -433,3 +433,8 @@ INSERT INTO MERCHANT_USER (
     1715563200, 
     CURRENT_TIMESTAMP
 );
+
+
+@Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END " +
+       "FROM Merchant m " +
+       "WHERE m.userId = :userId OR m.email = :userId OR m.mobilePhone = :userId")
