@@ -228,3 +228,68 @@ public class Merchant {
 }
 
 
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'merchantService' defined in file [F:\SBI\microservices\epay_merchant_service\build\classes\java\main\com\epay\merchant\service\MerchantService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'merchantDAO' defined in file [F:\SBI\microservices\epay_merchant_service\build\classes\java\main\com\epay\merchant\dao\MerchantDAO.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'merchantRepository' defined in com.epay.merchant.repository.MerchantRepository defined in @EnableJpaRepositories declared on EpayMerchantServiceApplication: Not a managed type: class com.epay.merchant.entity.Merchant
+
+-----------------------------------------------------------------------------------------------------------------------
+
+package com.epay.merchant.dao;
+
+import com.epay.merchant.repository.MerchantRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+/**
+ * Class Name: MerchantDAO
+ * *
+ * Description:
+ * *
+ * Author: V1017903(bhushan wadekar)
+ * <p>
+ * Copyright (c) 2024 [State Bank of India]
+ * All rights reserved
+ * *
+ * Version:1.0
+ */
+
+@Repository
+@RequiredArgsConstructor
+public class MerchantDAO {
+
+    private final MerchantRepository merchantRepository;
+
+    public boolean isExitsByUserIdOrEmailOrMobilePhone(String userId) {
+        return merchantRepository.isExitsByUserIdOrEmailOrMobilePhone(userId);
+    }
+}
+
+-----------------------------------------------------------------------------------------------------------------------------
+package com.epay.merchant.repository;
+import com.epay.merchant.entity.Merchant;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
+
+/**
+ * Class Name: MerchantRepository
+ * *
+ * Description:
+ * *
+ * Author: V1017903(bhushan wadekar)
+ * <p>
+ * Copyright (c) 2024 [State Bank of India]
+ * All rights reserved
+ * *
+ * Version:1.0
+ */
+
+public interface MerchantRepository extends JpaRepository<Merchant, UUID> {
+
+    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM Merchant m WHERE m.userId OR m.email OR m.mobilePhone = :userId")
+    boolean isExitsByUserIdOrEmailOrMobilePhone(@Param("userId") String userId);
+}
+
+
+
