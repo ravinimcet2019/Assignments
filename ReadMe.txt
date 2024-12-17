@@ -434,6 +434,10 @@ INSERT INTO MERCHANT_USER (
     CURRENT_TIMESTAMP
 );
 
+@Query("SELECT count(t.userId) from MerchantUser t where t.userId =:userId")
+        long countUserID(String userId); when run give zero result
+
+
 
 @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END " +
        "FROM Merchant m " +
