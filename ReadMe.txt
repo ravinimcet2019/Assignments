@@ -442,3 +442,41 @@ INSERT INTO MERCHANT_USER (
 @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END " +
        "FROM Merchant m " +
        "WHERE m.userId = :userId OR m.email = :userId OR m.mobilePhone = :userId")
+
+INSERT INTO MERCHANT_USER (
+    MID, PARENT_USERID, USER_NAME, FIRST_NAME, MIDDLE_NAME, LAST_NAME, EMAIL, 
+    PRIMARY_PHONE, SECONDARY_PHONE, MOBILE_PHONE, OFFICE_PHONE, COUNTRY_CODE, 
+    STATE_CODE, PIN_CODE, CITY, ROLE, STATUS, PASSWORD, LAST_PASSWORD_CHANGE, 
+    PASSWORD_EXPIRY_TIME, LOGIN_FAIL_ATTEMPT, LAST_SUCCESS_LOGIN, LAST_FAIL_LOGIN
+) VALUES (
+    'MID12346', 
+    'PARENT124', 
+    'USER124', 
+    'John', 
+    'Michael', 
+    'Doe', 
+    'john1.doe@example.com', 
+    '1234267890', 
+    '0987254321', 
+    '9876243210', 
+    '1234267890', 
+    'IN', 
+    'MH', 
+    '400001', 
+    'Mumbai', 
+    '2974CE46FEA23662E0637C86B10ADA63', 
+    'Active', 
+    'Password@123', 
+    1715563200, 
+    1718155200, 
+    0, 
+    1715563200, 
+    1715563200
+);
+
+
+INSERT INTO captcha_management (
+captcha_image,expiry_time,request_id,request_type,is_verified, created_at, updated_at)
+VALUES(
+'iVBORw0KGgoAAAANSUhEUgAABgMA',
+1700000000,'b2dbc497945146d68b7fb466b5f8e7dd','LOGIN',0,1700000000,1700000000);
