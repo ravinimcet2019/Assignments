@@ -285,282 +285,72 @@ import java.util.UUID;
  * Version:1.0
  */
 
-public interface MerchantRepository extends JpaRepository<Merchant, UUID> {
+public MerchantResponse<OtpValidationResponse> otpValidation(OtpValidationRequest otpValidationRequest) {
+        otpValidator.validateOtpValidationRequest(otpValidationRequest);
+        OtpDetailsDto otpDetails = otpManagementDao.getOtpDetailsByRequestId(otpValidationRequest.getRequestId())
+                .orElseThrow(() -> new MerchantException(ErrorConstants.INVALID_ERROR_CODE, MessageFormat.format(ErrorConstants.INVALID_ERROR_MESSAGE, "Request Id")));
+        isOtpVerified(otpValidationRequest, otpDetails);
+        Optional<TokenManagement> tokenManagement = tokenManagementDao.getTokenByUserIdAndIsValidTrue(otpDetails.getUserId());
+        OtpValidationResponse otpValidationResponse = getTokenDetails(tokenManagement, otpDetails);
+        return MerchantResponse.<OtpValidationResponse>builder()
+                .status(MerchantConstant.RESPONSE_SUCCESS)
+                .data(List.of(otpValidationResponse))
+                .build();
 
-    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM Merchant m WHERE m.userId OR m.email OR m.mobilePhone = :userId")
-    boolean isExitsByUserIdOrEmailOrMobilePhone(@Param("userId") String userId);
-}
+    }
 
---------------------------------------------------
+    private void isOtpVerified(OtpValidationRequest otpValidationRequest, OtpDetailsDto otpDetails) {
+        otpManagementDao.updateIsVerifiedByRequestId(otpValidationRequest.getRequestId());
+        if (!(otpValidationRequest.getOtp().equals(otpDetails.getOtpCode()))) {
+            throw new MerchantException(ErrorConstants.INVALID_ERROR_CODE, MessageFormat.format(ErrorConstants.INVALID_ERROR_MESSAGE, "OTP"));
+        }
+        if(!(DateTimeUtils.isPastDate(otpDetails.getExpiryTime()))) {
+            throw new MerchantException(ErrorConstants.EXPIRY_TIME_ERROR_CODE, MessageFormat.format(ErrorConstants.EXPIRY_TIME_ERROR_MESSAGE, "OTP"));
+        }
+    }
 
-package com.epay.merchant.entity;
+    private OtpValidationResponse getTokenDetails(Optional<TokenManagement> tokenManagement, OtpDetailsDto otpDetailsDto) {
 
-import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
-
-import javax.persistence.*;
-import java.util.Date;
-import java.util.UUID;
-
-/**
- * Class Name: Merchant
- * Description: Entity class for MERCHANT_USER table.
- * Author: V1017903 (Bhushan Wadekar)
- * Copyright (c) 2024 [State Bank of India]
- * Version: 1.0
- */
-
-@Getter
-@Setter
-@Entity
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-@Table(name = "MERCHANT_USER")
-public class Merchant {
-
-    @Id
-    @GeneratedValue(generator = "uuid")
-    @GenericGenerator(name = "uuid", strategy = "uuid2")
-    @Column(name = "ID", columnDefinition = "RAW(16)")
-    private UUID id;
-
-    @Column(name = "MID", nullable = false)
-    private String mId;
-
-    @Column(name = "PARENT_USERID", nullable = false)
-    private String parentUserId;
-
-    @Column(name = "USER_ID", nullable = false, unique = true)
-    private String userId;
-
-    @Column(name = "FIRST_NAME", nullable = false)
-    private String firstName;
-
-    @Column(name = "MIDDLE_NAME")
-    private String middleName;
-
-    @Column(name = "LAST_NAME", nullable = false)
-    private String lastName;
-
-    @Column(name = "EMAIL", unique = true)
-    private String email;
-
-    @Column(name = "PRIMARY_PHONE", unique = true)
-    private String primaryPhone;
-
-    @Column(name = "SECONDARY_PHONE")
-    private String secondaryPhone;
-
-    @Column(name = "MOBILE_PHONE", nullable = false, unique = true)
-    private String mobilePhone;
-
-    @Column(name = "OFFICE_PHONE", nullable = false)
-    private String officePhone;
-
-    @Column(name = "COUNTRY_CODE", nullable = false)
-    private String countryCode;
-
-    @Column(name = "STATE_CODE", nullable = false)
-    private String stateCode;
-
-    @Column(name = "PIN_CODE", nullable = false)
-    private String pinCode;
-
-    @Column(name = "CITY", nullable = false)
-    private String city;
-
-    @Column(name = "ROLE", nullable = false)
-    private String role;
-
-    @Column(name = "STATUS", nullable = false)
-    private String status;
-
-    @Column(name = "PASSWORD", nullable = false)
-    private String password;
-
-    @Column(name = "LAST_PASSWORD_CHANGE", nullable = false)
-    private long lastPasswordChange;
-
-    @Column(name = "PASSWORD_EXPIRY_TIME", nullable = false)
-    private long passwordExpiryTime;
-
-    @Column(name = "LOGIN_FAIL_ATTEMPT", nullable = false)
-    private long loginFailAttempt;
-
-    @Column(name = "LAST_SUCCESS_LOGIN", nullable = false)
-    private long lastSuccessLogin;
-
-    @Column(name = "LAST_FAIL_LOGIN", nullable = false)
-    private long lastFailLogin;
-
-    @Column(name = "CREATED_DATE", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date createdDate;
-}
-
-
--------------------------------------------------------
-
-INSERT INTO MERCHANT_USER (
-    MID, PARENT_USERID, USER_ID, FIRST_NAME, MIDDLE_NAME, LAST_NAME, EMAIL, 
-    PRIMARY_PHONE, SECONDARY_PHONE, MOBILE_PHONE, OFFICE_PHONE, COUNTRY_CODE, 
-    STATE_CODE, PIN_CODE, CITY, ROLE, STATUS, PASSWORD, LAST_PASSWORD_CHANGE, 
-    PASSWORD_EXPIRY_TIME, LOGIN_FAIL_ATTEMPT, LAST_SUCCESS_LOGIN, LAST_FAIL_LOGIN, CREATED_DATE
-) VALUES (
-    'MID12345', 
-    'PARENT123', 
-    'USER123', 
-    'John', 
-    'Michael', 
-    'Doe', 
-    'john.doe@example.com', 
-    '1234567890', 
-    '0987654321', 
-    '9876543210', 
-    '123-456-7890', 
-    'IN', 
-    'MH', 
-    '400001', 
-    'Mumbai', 
-    'Admin', 
-    'Active', 
-    'Password@123', 
-    1715563200, 
-    1718155200, 
-    0, 
-    1715563200, 
-    1715563200, 
-    CURRENT_TIMESTAMP
-);
-
-@Query("SELECT count(t.userId) from MerchantUser t where t.userId =:userId")
-        long countUserID(String userId); when run give zero result
-
-
-
-@Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END " +
-       "FROM Merchant m " +
-       "WHERE m.userId = :userId OR m.email = :userId OR m.mobilePhone = :userId")
-
-INSERT INTO MERCHANT_USER (
-    MID, PARENT_USERID, USER_NAME, FIRST_NAME, MIDDLE_NAME, LAST_NAME, EMAIL, 
-    PRIMARY_PHONE, SECONDARY_PHONE, MOBILE_PHONE, OFFICE_PHONE, COUNTRY_CODE, 
-    STATE_CODE, PIN_CODE, CITY, ROLE, STATUS, PASSWORD, LAST_PASSWORD_CHANGE, 
-    PASSWORD_EXPIRY_TIME, LOGIN_FAIL_ATTEMPT, LAST_SUCCESS_LOGIN, LAST_FAIL_LOGIN
-) VALUES (
-    'MID12346', 
-    'PARENT124', 
-    'USER124', 
-    'John', 
-    'Michael', 
-    'Doe', 
-    'john1.doe@example.com', 
-    '1234267890', 
-    '0987254321', 
-    '9876243210', 
-    '1234267890', 
-    'IN', 
-    'MH', 
-    '400001', 
-    'Mumbai', 
-    '2974CE46FEA23662E0637C86B10ADA63', 
-    'Active', 
-    'Password@123', 
-    1715563200, 
-    1718155200, 
-    0, 
-    1715563200, 
-    1715563200
-);
-
-
-INSERT INTO captcha_management (
-captcha_image,expiry_time,request_id,request_type,is_verified, created_at, updated_at)
-VALUES(
-'iVBORw0KGgoAAAANSUhEUgAABgMA',
-1700000000,'b2dbc497945146d68b7fb466b5f8e7dd','LOGIN',0,1700000000,1700000000);
-
-
-
-INSERT INTO MERCHANT_INFO (
-    MERCHANT_ID, MID, MERCHANT_NAME, BUSINESS_NAME, BRAND_NAME, BUSINESS_CATEGORY, CATEGORY_CODE, 
-    ADDRESS_LINE1, ADDRESS_LINE2, STATE, CITY, COUNTRY, PINCODE, MOBILE_NUMBER, PHONE_NUMBER, 
-    PRIMARY_EMAIL, SECONDARY_EMAIL, MERCHANT_URL, STATUS, VALIDITY_START_TIME, VALIDITY_END_TIME, 
-    ONBOARDING_TIME, ENCRYPTED_ALGO, RM_NAME, BANK_CODE, BRANCH_CODE, GST_NUMBER, IS_CHARGEBACK_ALLOWED, 
-    AGGREGATOR_ID, NOTIFICATION, CREATED_BY, CREATED_AT, UPDATED_BY, UPDATED_AT
-) 
-VALUES (
-    SYS_GUID(), 
-    'MID12345', 
-    'Merchant ABC', 
-    'ABC Pvt Ltd', 
-    'ABC Brand', 
-    'Retail', 
-    'R123', 
-    '123 Main Street', 
-    'Suite 100', 
-    'Maharashtra', 
-    'Mumbai', 
-    'India', 
-    '400001', 
-    '9876543210', 
-    '02212345678', 
-    'merchantabc@example.com', 
-    'merchantabc.secondary@example.com', 
-    'https://merchantabc.com', 
-    'Active', 
-    1715563200, 
-    1718155200, 
-    1715563200, 
-    'SHA-256', 
-    'John Doe', 
-    'BANK123', 
-    'BRANCH456', 
-    '27AABCU9603R1ZV', 
-    'Y', 
-    'AGG123', 
-    'All notifications enabled', 
-    'Admin', 
-    1715563200, 
-    'Admin', 
-    1715563200
-);
-
-
-INSERT INTO MERCHANT_USER (
-    ID, MID, PARENT_USERID, USER_NAME, FIRST_NAME, MIDDLE_NAME, LAST_NAME, EMAIL, PRIMARY_PHONE, 
-    SECONDARY_PHONE, MOBILE_PHONE, OFFICE_PHONE, COUNTRY_CODE, STATE_CODE, PIN_CODE, CITY, ROLE, 
-    STATUS, PASSWORD, LAST_PASSWORD_CHANGE, PASSWORD_EXPIRY_TIME, LOGIN_FAIL_ATTEMPT, LAST_SUCCESS_LOGIN, 
-    LAST_FAIL_LOGIN, CREATED_BY, CREATED_AT, UPDATED_BY, UPDATED_AT
-) 
-VALUES (
-    SYS_GUID(), 
-    'MID12345', 
-    NULL, 
-    'UserABC', 
-    'John', 
-    'Michael', 
-    'Doe', 
-    'john.doe@example.com', 
-    '9876543210', 
-    '02212345678', 
-    '9876543210', 
-    '02212345678', 
-    'IN', 
-    'MH', 
-    '400001', 
-    'Mumbai', 
-    'Admin', 
-    'Active', 
-    'Password123', 
-    1715563200, 
-    1718155200, 
-    0, 
-    1715563200, 
-    1715563200, 
-    'Admin', 
-    1715563200, 
-    'Admin', 
-    1715563200
-);
+        TokenManagement tokenManagementBuilder = TokenManagement.builder()
+                .isGenerated(TokenStatus.IN_PROGRESS.name)
+                .userId(otpDetailsDto.getUserId())
+                .isValid(false)
+                .build();
+        TokenManagement tokenResponse = tokenManagementDao.saveToken(tokenManagementBuilder);
+        String token = "";
+        try {
+            token = authenticationService.generateUserToken(createTokenRequestInstance(otpDetailsDto));
+        } catch (Exception e) {
+            tokenManagementBuilder.setIsGenerated(TokenStatus.NOT_GENERATED.name);
+            tokenManagementDao.saveToken(tokenManagementBuilder);
+            throw new MerchantException("501","Exception while generating token");
+        }
+        tokenManagementBuilder.setIsGenerated(TokenStatus.GENERATED.name);
+        tokenManagementBuilder.setValid(true);
+        if (tokenManagement.isPresent()) {
+            // TODO set expiry time in db
+            tokenManagementDao.saveAndUpdateTokenDetails(tokenManagementBuilder);
+            return OtpValidationResponse.builder()
+                    .requestId(otpDetailsDto.getRequestId())
+                    .token(token)
+                    .message(MessageFormat.format(MerchantConstant.SUCCESS_MESSAGE, "OTP validated"))
+                    .build();
+        }
+        tokenManagementDao.saveToken(tokenManagementBuilder);
+        return OtpValidationResponse.builder()
+                .requestId(otpDetailsDto.getRequestId())
+                .token(token)
+                .message(MessageFormat.format(MerchantConstant.SUCCESS_MESSAGE, "OTP validated"))
+                .build();
+    }
+    
+    private UserTokenRequest createTokenRequestInstance(OtpDetailsDto otpDetailsDto) {
+        UserTokenRequest tokenRequest = new UserTokenRequest();
+        tokenRequest.setTokenType(TokenType.USER);
+        tokenRequest.setUsername(otpDetailsDto.getUserName());
+        tokenRequest.setPassword(otpDetailsDto.getPassword());
+//        tokenRequest.setMid(merchantUser.getM);
+        tokenRequest.setRoles(List.of(MerchantUserRoles.ADMIN.name()));
+        tokenRequest.setExpirationTime(DateTimeUtils.addMinutes(merchantConfig.getTokenExpiryTime()).intValue());
+        return tokenRequest;
+    }
