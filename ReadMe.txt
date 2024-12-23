@@ -354,3 +354,109 @@ public MerchantResponse<OtpValidationResponse> otpValidation(OtpValidationReques
         tokenRequest.setExpirationTime(DateTimeUtils.addMinutes(merchantConfig.getTokenExpiryTime()).intValue());
         return tokenRequest;
     }
+_____________________________________
+
+
+
+public MerchantResponse<OtpValidationResponse> otpValidation(OtpValidationRequest otpValidationRequest) {
+    // Validate the incoming request
+    otpValidator.validateOtpValidationRequest(otpValidationRequest);
+
+    // Fetch OTP details and throw exception if not found
+    OtpDetailsDto otpDetails = otpManagementDao.getOtpDetailsByRequestId(otpValidationRequest.getRequestId())
+            .orElseThrow(() -> new MerchantException(
+                    ErrorConstants.INVALID_ERROR_CODE,
+                    MessageFormat.format(ErrorConstants.INVALID_ERROR_MESSAGE, "Request Id")
+            ));
+
+    // Verify the OTP
+    verifyOtp(otpValidationRequest, otpDetails);
+
+    // Fetch token details and create response
+    Optional<TokenManagement> tokenManagement = tokenManagementDao.getTokenByUserIdAndIsValidTrue(otpDetails.getUserId());
+    OtpValidationResponse otpValidationResponse = createTokenAndResponse(tokenManagement, otpDetails);
+
+    // Build and return the response
+    return MerchantResponse.<OtpValidationResponse>builder()
+            .status(MerchantConstant.RESPONSE_SUCCESS)
+            .data(List.of(otpValidationResponse))
+            .build();
+}
+
+private void verifyOtp(OtpValidationRequest otpValidationRequest, OtpDetailsDto otpDetails) {
+    // Mark OTP as verified in the database
+    otpManagementDao.updateIsVerifiedByRequestId(otpValidationRequest.getRequestId());
+
+    // Validate OTP value
+    if (!otpValidationRequest.getOtp().equals(otpDetails.getOtpCode())) {
+        throw new MerchantException(
+                ErrorConstants.INVALID_ERROR_CODE,
+                MessageFormat.format(ErrorConstants.INVALID_ERROR_MESSAGE, "OTP")
+        );
+    }
+
+    // Validate OTP expiry
+    if (!DateTimeUtils.isPastDate(otpDetails.getExpiryTime())) {
+        throw new MerchantException(
+                ErrorConstants.EXPIRY_TIME_ERROR_CODE,
+                MessageFormat.format(ErrorConstants.EXPIRY_TIME_ERROR_MESSAGE, "OTP")
+        );
+    }
+}
+
+private OtpValidationResponse createTokenAndResponse(Optional<TokenManagement> existingToken, OtpDetailsDto otpDetails) {
+    // Build token management object
+    TokenManagement tokenManagement = TokenManagement.builder()
+            .isGenerated(TokenStatus.IN_PROGRESS.name)
+            .userId(otpDetails.getUserId())
+            .isValid(false)
+            .build();
+
+    // Save the initial token management state
+    tokenManagementDao.saveToken(tokenManagement);
+
+    // Generate user token
+    String token = generateUserTokenSafely(tokenManagement, otpDetails);
+
+    // Update token details in the database
+    tokenManagement.setIsGenerated(TokenStatus.GENERATED.name);
+    tokenManagement.setValid(true);
+
+    if (existingToken.isPresent()) {
+        // Update existing token details if a valid token exists
+        tokenManagementDao.saveAndUpdateTokenDetails(tokenManagement);
+    } else {
+        // Save new token details
+        tokenManagementDao.saveToken(tokenManagement);
+    }
+
+    // Build and return the OTP validation response
+    return OtpValidationResponse.builder()
+            .requestId(otpDetails.getRequestId())
+            .token(token)
+            .message(MessageFormat.format(MerchantConstant.SUCCESS_MESSAGE, "OTP validated"))
+            .build();
+}
+
+private String generateUserTokenSafely(TokenManagement tokenManagement, OtpDetailsDto otpDetails) {
+    try {
+        // Attempt to generate the token
+        return authenticationService.generateUserToken(createTokenRequestInstance(otpDetails));
+    } catch (Exception e) {
+        // Handle token generation failure
+        tokenManagement.setIsGenerated(TokenStatus.NOT_GENERATED.name);
+        tokenManagementDao.saveToken(tokenManagement);
+        throw new MerchantException("501", "Exception while generating token");
+    }
+}
+
+private UserTokenRequest createTokenRequestInstance(OtpDetailsDto otpDetails) {
+    // Build and return a UserTokenRequest object
+    return UserTokenRequest.builder()
+            .tokenType(TokenType.USER)
+            .username(otpDetails.getUserName())
+            .password(otpDetails.getPassword())
+            .roles(List.of(MerchantUserRoles.ADMIN.name()))
+            .expirationTime(DateTimeUtils.addMinutes(merchantConfig.getTokenExpiryTime()).intValue())
+            .build();
+}
