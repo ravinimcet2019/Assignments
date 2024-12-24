@@ -467,3 +467,36 @@ private UserTokenRequest createTokenRequestInstance(OtpDetailsDto otpDetails) {
        "JOIN MerchantUser u ON o.userId = u.id " +
        "WHERE o.requestId = :requestId")
 Optional<OtpDetailsDto> getOtpDetailsByRequestId(@Param("requestId") UUID requestId);
+
+
+package com.epay.merchant.dto;
+
+import java.util.UUID;
+
+public class OtpDetailsDto {
+    private UUID id;
+    private String requestType;
+    private UUID userId;
+    private UUID requestId;
+    private String otpCode;
+    private Long expiryTime;
+    private Boolean isVerified;
+    private String userName;
+    private String password;
+
+    public OtpDetailsDto(UUID id, String requestType, UUID userId, UUID requestId, 
+                         String otpCode, Long expiryTime, Boolean isVerified, 
+                         String userName, String password) {
+        this.id = id;
+        this.requestType = requestType;
+        this.userId = userId;
+        this.requestId = requestId;
+        this.otpCode = otpCode;
+        this.expiryTime = expiryTime;
+        this.isVerified = isVerified;
+        this.userName = userName;
+        this.password = password;
+    }
+
+    // Getters and setters
+}
