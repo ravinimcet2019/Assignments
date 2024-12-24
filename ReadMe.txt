@@ -503,3 +503,9 @@ public class OtpDetailsDto {
 
 Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'otpService' defined in file [F:\SBI\microservices\epay_merchant_service\build\classes\java\main\com\epay\merchant\service\OtpService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'otpValidator' defined in file [F:\SBI\microservices\epay_merchant_service\build\classes\java\main\com\epay\merchant\validator\OtpValidator.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'otpManagementDao' defined in file [F:\SBI\microservices\epay_merchant_service\build\classes\java\main\com\epay\merchant\dao\OtpManagementDao.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'otpManagementRepository' defined in com.epay.merchant.repository.OtpManagementRepository defined in @EnableJpaRepositories declared on EpayMerchantServiceApplication: Could not create query for public abstract java.util.Optional com.epay.merchant.repository.OtpManagementRepository.getOtpDetailsByRequestId(java.util.UUID); Reason: Validation failed for query for method public abstract java.util.Optional com.epay.merchant.repository.OtpManagementRepository.getOtpDetailsByRequestId(java.util.UUID)
 
+@Query("SELECT new com.epay.merchant.dto.OtpDetailsDto(o.id, o.requestType, o.userId, " +
+       "o.requestId, o.otpCode, o.expiryTime, o.isVerified, u.userName, u.password) " +
+       "FROM OtpManagement o " +
+       "JOIN MerchantUser u ON o.userId = u.id " +
+       "WHERE o.requestId = :requestId")
+Optional<OtpDetailsDto> getOtpDetailsByRequestId(@Param("requestId") UUID requestId);
