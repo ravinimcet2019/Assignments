@@ -460,3 +460,10 @@ private UserTokenRequest createTokenRequestInstance(OtpDetailsDto otpDetails) {
             .expirationTime(DateTimeUtils.addMinutes(merchantConfig.getTokenExpiryTime()).intValue())
             .build();
 }
+
+@Query("SELECT new com.epay.merchant.dto.OtpDetailsDto(o.id, o.requestType, o.userId, " +
+       "o.requestId, o.otpCode, o.expiryTime, o.isVerified, u.userName, u.password) " +
+       "FROM OtpManagement o " +
+       "JOIN MerchantUser u ON o.userId = u.id " +
+       "WHERE o.requestId = :requestId")
+Optional<OtpDetailsDto> getOtpDetailsByRequestId(@Param("requestId") UUID requestId);
