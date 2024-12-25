@@ -808,3 +808,107 @@ public class MerchantEntityUserService {
                         .build());
     }
 }
+
+---------------------------
+
+
+import com.epay.merchant.dao.MerchantEntityUserDao;
+import com.epay.merchant.entity.MerchantUser;
+import com.epay.merchant.model.response.MerchantResponse;
+import com.epay.merchant.model.response.MidMappingResponse;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class MerchantEntityUserService {
+
+    private final MerchantEntityUserDao merchantEntityUserDao;
+
+    /**
+     * Retrieves MID mapping list based on user ID and parent MID list.
+     *
+     * @param userId The ID of the user.
+     * @param mids   The list of MIDs passed from the frontend.
+     * @return MerchantResponse containing assigned and unassigned MIDs.
+     */
+    public MerchantResponse<MidMappingResponse> getMidMappingList(UUID userId, List<String> mids) {
+        MerchantUser merchantUser = fetchMerchantUser(userId);
+
+        if (isParentUser(merchantUser)) {
+            return buildResponse(mids, List.of());
+        }
+
+        List<String> allMids = fetchAllMidsForUser(userId);
+        List<String> unassignedMids = calculateUnassignedMids(mids, allMids);
+
+        return buildResponse(mids, unassignedMids);
+    }
+
+    /**
+     * Fetches the MerchantUser based on userId.
+     *
+     * @param userId The ID of the user.
+     * @return MerchantUser entity.
+     */
+    private MerchantUser fetchMerchantUser(UUID userId) {
+        return merchantEntityUserDao.findMerchantById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Merchant User not found for userId: " + userId));
+    }
+
+    /**
+     * Checks if the given user is a parent user.
+     *
+     * @param merchantUser The MerchantUser entity.
+     * @return true if the user is a parent user, false otherwise.
+     */
+    private boolean isParentUser(MerchantUser merchantUser) {
+        return ObjectUtils.isEmpty(merchantUser.getParentUserId());
+    }
+
+    /**
+     * Fetches all MIDs associated with the user based on userId and entityId.
+     *
+     * @param userId The ID of the user.
+     * @return List of all MIDs.
+     */
+    private List<String> fetchAllMidsForUser(UUID userId) {
+        return merchantEntityUserDao.getMidsBasedOnUserIdAndEntityId(userId);
+    }
+
+    /**
+     * Calculates unassigned MIDs by comparing parent MIDs with assigned MIDs.
+     *
+     * @param parentMids   The list of MIDs passed from the frontend.
+     * @param assignedMids The list of MIDs fetched from the database.
+     * @return List of unassigned MIDs.
+     */
+    private List<String> calculateUnassignedMids(List<String> parentMids, List<String> assignedMids) {
+        return assignedMids.stream()
+                .filter(mid -> !parentMids.contains(mid))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Builds the MerchantResponse containing assigned and unassigned MIDs.
+     *
+     * @param assignedMids   List of assigned MIDs.
+     * @param unAssignedMids List of unassigned MIDs.
+     * @return MerchantResponse containing MID mapping details.
+     */
+    private MerchantResponse<MidMappingResponse> buildResponse(List<String> assignedMids, List<String> unAssignedMids) {
+        MidMappingResponse response = MidMappingResponse.builder()
+                .assignedMids(assignedMids)
+                .unAssignedMids(unAssignedMids)
+                .build();
+
+        return MerchantResponse.<MidMappingResponse>builder()
+                .data(List.of(response))
+                .build();
+    }
+}
