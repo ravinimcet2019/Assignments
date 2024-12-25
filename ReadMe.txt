@@ -756,3 +756,55 @@ public interface MerchantEntityRepository extends JpaRepository<MerchantEntityUs
            "WHERE me.userId = :userId")
     List<String> getMidsBasedOnEntityId(@Param("userId") UUID userId);
 }
+
+import com.epay.merchant.dao.MerchantEntityUserDao;
+import com.epay.merchant.entity.MerchantUser;
+import com.epay.merchant.model.response.MerchantResponse;
+import com.epay.merchant.model.response.MidMappingResponse;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class MerchantEntityUserService {
+
+    private final MerchantEntityUserDao merchantEntityUserDao;
+
+    public MerchantResponse<MidMappingResponse> getMidMappingList(UUID userId, List<String> mids) {
+        MerchantUser merchantUser = merchantEntityUserDao.findMerchantById(userId).get();
+
+        if (ObjectUtils.isEmpty(merchantUser.getParentUserId())) {
+            return buildResponse(mids, List.of());
+        }
+        List<String> allMids = merchantEntityUserDao.getMidsBasedOnUserIdAndEntityId(userId);
+        List<String> unassignedMids = getUnassignedMids(mids, allMids);
+        return buildResponse(mids, unassignedMids);
+
+    }
+
+    private List<String> getUnassignedMids(List<String> parentMids, List<String> assignedMids) {
+        return assignedMids.stream()
+                .filter(mid -> !parentMids.contains(mid))
+                .collect(Collectors.toList());
+    }
+
+    private MerchantResponse<MidMappingResponse> buildResponse(List<String> assignedMids, List<String> unAssignedMids) {
+        return unAssignedMids.isEmpty() ?
+                (MerchantResponse.<MidMappingResponse>builder()
+                        .data(List.of(MidMappingResponse.builder()
+                                .assignedMids(assignedMids)
+                                .build()))
+                        .build()) :
+                (MerchantResponse.<MidMappingResponse>builder()
+                        .data(List.of(MidMappingResponse.builder()
+                                .assignedMids(assignedMids)
+                                .unAssignedMids(unAssignedMids)
+                                .build()))
+                        .build());
+    }
+}
