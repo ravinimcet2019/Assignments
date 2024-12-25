@@ -646,3 +646,17 @@ INSERT INTO TOKEN_MANAGEMENT (
     SYS_GUID(), 'USER_ID_FROM_MERCHANT_USER', 'sampleToken123', 1704067200, 'Y', 1, 'Token generated successfully', 
     'Admin', 1672531200
 );
+
+
+@Repository
+public interface OtpManagementRepository extends JpaRepository<OtpManagement, UUID> {
+    @Query("SELECT new com.example.dto.OtpUserDetailsDto( " +
+           "o.id, o.requestType, o.requestId, o.otpCode, o.expiryTime, o.isVerified, " +
+           "u.userName, u.password, r.role) " +
+           "FROM OtpManagement o " +
+           "JOIN MerchantUser u ON o.userId = u.id " +
+           "JOIN UserRoles r ON u.role = r.id " +
+           "WHERE o.requestId = :requestId")
+    Optional<OtpUserDetailsDto> getOtpDetailsWithRoleName(@Param("requestId") UUID requestId);
+}
+
