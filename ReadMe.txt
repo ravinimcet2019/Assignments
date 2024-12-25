@@ -685,3 +685,15 @@ CREATE TABLE MERCHANT_ENTITY_GROUP (
     CONSTRAINT FK_MERCHANT_ENTITY_GROUP FOREIGN KEY (MID) REFERENCES MERCHANT_INFO(MID) -- Foreign Key to `merchant_info` table
 );
 
+@Repository
+public interface MerchantEntityRepository extends JpaRepository<MerchantEntityUser, UUID> {
+
+    @Query("SELECT CASE " +
+           "WHEN me.entityId IS NULL THEN " +
+           "    (SELECT DISTINCT mu.mid FROM MerchantEntityUser mu WHERE mu.userId = :userId) " +
+           "ELSE " +
+           "    (SELECT DISTINCT meg.mid FROM MerchantEntityGroup meg WHERE meg.entityId = me.entityId) " +
+           "END " +
+           "FROM MerchantEntityUser me WHERE me.userId = :userId")
+    List<String> getMidsBasedOnEntityId(@Param("userId") UUID userId);
+}
