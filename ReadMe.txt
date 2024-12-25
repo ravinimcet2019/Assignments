@@ -734,3 +734,25 @@ CREATE TABLE MERCHANT_INFO (
     UPDATED_BY	VARCHAR2(50) NOT NULL,
     UPDATED_AT	NUMBER NOT NULL
 );
+
+
+
+@Repository
+public interface MerchantEntityRepository extends JpaRepository<MerchantEntityUser, UUID> {
+
+    @Query("SELECT CASE " +
+           "WHEN me.entityId IS NULL THEN " +
+           "    (SELECT DISTINCT mu.mid " +
+           "     FROM MerchantEntityUser mu " +
+           "     JOIN MerchantInfo mi ON mu.mid = mi.mid " +
+           "     WHERE mu.userId = :userId AND mi.status = 'ACTIVE') " +
+           "ELSE " +
+           "    (SELECT DISTINCT meg.mid " +
+           "     FROM MerchantEntityGroup meg " +
+           "     JOIN MerchantInfo mi ON meg.mid = mi.mid " +
+           "     WHERE meg.entityId = me.entityId AND mi.status = 'ACTIVE') " +
+           "END " +
+           "FROM MerchantEntityUser me " +
+           "WHERE me.userId = :userId")
+    List<String> getMidsBasedOnEntityId(@Param("userId") UUID userId);
+}
