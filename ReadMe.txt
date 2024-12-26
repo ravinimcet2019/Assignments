@@ -937,3 +937,13 @@ VALUES (SYS_GUID(), 'MID003', 'ENTITY003', 'Admin', 1672501234, 'Admin', 1672501
 
 INSERT INTO MERCHANT_ENTITY_GROUP (ID, MID, ENTITY_ID, CREATED_BY, CREATED_AT, UPDATED_BY, UPDATED_AT) 
 VALUES (SYS_GUID(), 'MID004', 'ENTITY004', 'Admin', 1672501234, 'Admin', 1672501234);
+
+@Query("SELECT mu.mid " +
+       "FROM MerchantEntityUser mu " +
+       "WHERE mu.userId = :userId AND mu.entityId IS NULL " +
+       "UNION " +
+       "SELECT meg.mid " +
+       "FROM MerchantEntityGroup meg " +
+       "JOIN MerchantEntityUser me ON meg.entityId = me.entityId " +
+       "WHERE me.userId = :userId AND me.entityId IS NOT NULL")
+List<String> getMidsBasedOnEntityId(@Param("userId") UUID userId);
