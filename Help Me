@@ -1,144 +1,113 @@
+User Story: Fetch MID Mapping List
 Description
-
-For a merchant login
+For a merchant's MID management, provide an API to fetch the list of assigned and unassigned MIDs for a given user. This will help in identifying which MIDs are already associated with a user and which are available for assignment.
 
 API Details
-
-Method: Post
-
-API Definition: /v1/merchant/login
-
-Access Type: Open API
-
-Request Body:
-
-
-
- 
-{  
- “userName”: string 
- “password”: hash string 
- “requestId”: Alaphanumeric string
- “captchaText”: string 
-}
-
-
-
-
-
-        
-      request Type need to be LOGIN
-
-        
-      userId Id can be userId or Email or Mobile Number of the user, this has to be unique in the system.
-
-        
-      Both fields are mandatory
-
-
-Succes Response Body
-
+Method: POST
+API Definition: /v1/mid/mapping/list
+Access Type: Secured API
+Request Body
+json
+Copy code
 {
-  "data": [
-    {
-       "message": String
-    }
-   ],
-  "status":1,
+  "userId": "string",
+  "midList": ["string"]
 }
+userId: The unique identifier of the parent user. It must be validated to ensure the parent user exists in the system.
+midList: List of MIDs to check their assigned or unassigned status.
+Both fields are mandatory.
 
-
-
+Success Response Body
+json
+Copy code
+{
+  "data": {
+    "assignedMids": [
+      {
+        "mid": "string",
+        "name": "string"
+      }
+    ],
+    "unassignedMids": [
+      {
+        "mid": "string",
+        "name": "string"
+      }
+    ]
+  },
+  "status": 1
+}
+assignedMids: List of MIDs with their names that are already assigned to the userId.
+unassignedMids: List of MIDs with their names that are not assigned to the userId.
 Failure Response Body
-
+json
+Copy code
 {
-  "status":0,
+  "status": 0,
   "error": [
-     {
-       "errorCode": String, 
-       "errorMessage": String, 
-     }
-   ]
+    {
+      "errorCode": "string",
+      "errorMessage": "string"
+    }
+  ]
 }
-
-
-
+errorCode: Specific error code for debugging.
+errorMessage: Description of the error encountered.
 Testing Checklist
+Positive Scenarios:
 
+Test with valid userId and midList containing valid MIDs.
+Validate the response contains both assignedMids and unassignedMids.
+Negative Scenarios:
 
-        
-      Test with valid user / email / mobile
-
-        
-      Test with invalid user / email / mobile
-
-        
-      Test with blank / null user / email / mobile
-
-
+Test with invalid userId (not present in the system).
+Test with midList containing invalid MIDs.
+Test with empty or null userId.
+Test with empty or null midList.
 Developer Checklist
+Class Flow: Ensure a proper flow diagram is uploaded.
+Unit Test Coverage: Achieve at least 90% test coverage.
+Development Steps
+Step 1: Create Validation and Mapping Controller
 
-Class Flow
+Develop a REST Controller to expose the /v1/mid/mapping/list endpoint.
+Step 2: Implement MID Mapping Service
 
-to be uploaded
+Validate the userId and ensure it exists in the database.
+Check the midList against the database and segregate them into assignedMids and unassignedMids.
+Step 3: Create DAO and Repository
 
-90% Unit test case coverage
+User DAO: Implement existsUserId(String userId) to validate if the parent user exists.
+MID Repository: Create queries to:
+Fetch assigned MIDs: findAssignedMids(String userId, List<String> midList).
+Fetch unassigned MIDs: findUnassignedMids(List<String> midList).
+Step 4: Return Response
 
+Construct the MerchantResponse with assignedMids and unassignedMids.
+Summary of Key Components
+Controller:
 
-Development Steps for Valid User Implementation 
-Step 1: Create validation/Login Controller_ -_ Develop a REST Controller to expose the validation/Login API endpoints for user id validation. 
-Step 2: Develop Login Service_ -_ Create a service class to handle user validation check as below
+Exposes the /v1/mid/mapping/list endpoint.
+Service:
 
-Decrypt request payload, check if userId value exists in user-id or email or mobile number column, password and captcha, if valid return JWT Token response else check next step.
+Handles business logic for validating userId and segregating midList.
+Repository:
 
-Step 3 : Create User DAO and Repository and implement 3 methods as below
-
-
-        
-      
-User Dao - Implement existsUserId(String userId) will return boolean
-
-        
-      
-User Repository - create query with or condition on userId, email or phoneNumber column
-
-        
-      
-Captcha service - Implement captchaActive(String catptchaVal) will return boolean.
-
-        
-      
-Captcha repository- create query to fetch getCaptcha(String catptchaVal)
-
-        
-      
-Login DAO – Implement saveToken(String token) to save information in DB.
-
-        
-      
-Token Service - Send response to caller.
-
-Summary of Key Components 
+Interacts with the database to fetch assigned and unassigned MIDs.
+Acceptance Criteria
+The service should respond quickly, even for large midList inputs.
+All requests and responses must be logged for traceability.
+Validation errors should return meaningful error messages and codes.
+Let me know if you need additional details or adjustments!
 
 
-        
-      
-Controller: Exposes endpoints for login validation. 
-
-        
-      
-Service: Handles logic of all 3 types of checking valid user id, valid email and valid mobile number. 
-
-        
-      
-Repository: Uses user data in the database for login validation and authentication. 
 
 
-Acceptance Criteria 
 
 
-        
-      Valid Login service should response quickly, if user request payload is valid or invalid 
 
-        
-      All requests and responses must be logged for traceability. 
+
+
+
+
+
