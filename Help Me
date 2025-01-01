@@ -102,10 +102,25 @@ Let me know if you need additional details or adjustments!
 
 
 
+Service Layer Implementation
+Validate the userId:
+
+Ensure that the userId is valid and exists in the system.
+Check for Parent ID:
+
+Query the database to determine if a parentId exists for the given userId.
+If parentId Does Not Exist:
+
+Treat all MIDs in the system as assignedMIDs.
+If parentId Exists:
+
+Retrieve the MIDs associated with the parentId.
+Identify which MIDs are already assigned and which are unassigned.
 
 
+Return Assigned and Unassigned MIDs:
 
-
+Provide the assigned MIDs as assignedMids and the remaining MIDs as unassignedMids
 
 
 
