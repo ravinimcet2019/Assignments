@@ -127,5 +127,13 @@ Provide the assigned MIDs as assignedMids and the remaining MIDs as unassignedMi
 
 
 
+-- Create the REVINFO table
+CREATE TABLE REVINFO (
+    REV INT NOT NULL PRIMARY KEY, -- Revision ID
+    REVTSTMP TIMESTAMP NOT NULL   -- Revision timestamp
+);
+
+-- Create the sequence for revision numbers
+CREATE SEQUENCE revinfo_seq START WITH 1 INCREMENT BY 1;
 
 
