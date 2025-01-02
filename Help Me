@@ -121,6 +121,9 @@ Identify which MIDs are already assigned and which are unassigned.
 Return Assigned and Unassigned MIDs:
 
 Provide the assigned MIDs as assignedMids and the remaining MIDs as unassignedMids
+-------------------------------------------------------------------------------------
+
+2025-01-02 17:00:42.737 WARN | com.epay.merchant.exceptionhandlers.MerchantExceptionHandler:97 | principal=  | scenario=/v1/merchant/login | operation=POST | correlation=aad461c9-788e-431c-b117-639cfe142c0e | handleDBException | Resolved [org.springframework.dao.InvalidDataAccessResourceUsageException: could not extract ResultSet [ORA-02289: sequence does not exist<EOL><EOL><EOL>https://docs.oracle.com/error-help/db/ora-02289/] [select revinfo_seq.nextval from dual]; SQL [select revinfo_seq.nextval from dual]]
 
 
 
