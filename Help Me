@@ -150,3 +150,19 @@ The increment size of the [revinfo_SEQ] sequence is set to [50] in the entity ma
 ----------------------------------------------------
 
 2025-01-03 18:55:15.271 WARN | com.epay.merchant.exceptionhandlers.MerchantExceptionHandler:97 | principal=  | scenario=/merchant/v1/otp/validation | operation=POST | correlation=ba28a3d9-7332-4c5c-add9-7ac9a25ff8d1 | handleDBException | Resolved [org.springframework.dao.InvalidDataAccessResourceUsageException: could not execute statement [ORA-00932: inconsistent datatypes: expected TIMESTAMP got NUMBER<EOL><EOL><EOL>https://docs.oracle.com/error-help/db/ora-00932/] [insert into revinfo (revtstmp,rev) values (?,?)]; SQL [insert into revinfo (revtstmp,rev) values (?,?)]]
+
+
+@Entity
+@RevisionEntity
+public class CustomRevisionEntity extends DefaultRevisionEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "revinfo_seq_gen")
+    @SequenceGenerator(name = "revinfo_seq_gen", sequenceName = "revinfo_seq", allocationSize = 1)
+    private int rev;
+
+    @Column(name = "REVTSTMP", nullable = false)
+    private Timestamp revtstmp;
+
+    // Additional fields if needed
+}
