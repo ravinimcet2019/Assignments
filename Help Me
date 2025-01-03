@@ -145,3 +145,5 @@ Caused by: jakarta.persistence.PersistenceException: [PersistenceUnit: default] 
 Caused by: org.hibernate.MappingException: 
 The increment size of the [revinfo_SEQ] sequence is set to [50] in the entity mapping while the associated database sequence increment size is [1].
 
+2025-01-03 18:48:31.570 WARN | com.epay.merchant.exceptionhandlers.MerchantExceptionHandler:97 | principal=  | scenario=/merchant/v1/otp/validation | operation=POST | correlation=ac2ca0e3-3cb4-406e-89be-491892dee459 | handleDBException | Resolved [org.springframework.dao.InvalidDataAccessResourceUsageException: could not execute statement [ORA-00942: table or view does not exist<EOL><EOL><EOL>https://docs.oracle.com/error-help/db/ora-00942/] [insert into revinfo (revtstmp,rev) values (?,?)]; SQL [insert into revinfo (revtstmp,rev) values (?,?)]]
+
