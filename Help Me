@@ -147,3 +147,6 @@ The increment size of the [revinfo_SEQ] sequence is set to [50] in the entity ma
 
 2025-01-03 18:48:31.570 WARN | com.epay.merchant.exceptionhandlers.MerchantExceptionHandler:97 | principal=  | scenario=/merchant/v1/otp/validation | operation=POST | correlation=ac2ca0e3-3cb4-406e-89be-491892dee459 | handleDBException | Resolved [org.springframework.dao.InvalidDataAccessResourceUsageException: could not execute statement [ORA-00942: table or view does not exist<EOL><EOL><EOL>https://docs.oracle.com/error-help/db/ora-00942/] [insert into revinfo (revtstmp,rev) values (?,?)]; SQL [insert into revinfo (revtstmp,rev) values (?,?)]]
 
+----------------------------------------------------
+
+2025-01-03 18:55:15.271 WARN | com.epay.merchant.exceptionhandlers.MerchantExceptionHandler:97 | principal=  | scenario=/merchant/v1/otp/validation | operation=POST | correlation=ba28a3d9-7332-4c5c-add9-7ac9a25ff8d1 | handleDBException | Resolved [org.springframework.dao.InvalidDataAccessResourceUsageException: could not execute statement [ORA-00932: inconsistent datatypes: expected TIMESTAMP got NUMBER<EOL><EOL><EOL>https://docs.oracle.com/error-help/db/ora-00932/] [insert into revinfo (revtstmp,rev) values (?,?)]; SQL [insert into revinfo (revtstmp,rev) values (?,?)]]
