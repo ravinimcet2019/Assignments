@@ -139,4 +139,9 @@ CREATE SEQUENCE revinfo_seq START WITH 1 INCREMENT BY 1;
 
 Caused by: jakarta.persistence.PersistenceException: [PersistenceUnit: default] Unable to build Hibernate SessionFactory; nested exception is org.hibernate.MappingException: Could not instantiate id generator [entity-name=org.hibernate.envers.DefaultRevisionEntity]
 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Caused by: org.hibernate.MappingException: 
+The increment size of the [revinfo_SEQ] sequence is set to [50] in the entity mapping while the associated database sequence increment size is [1].
 
