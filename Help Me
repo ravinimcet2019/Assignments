@@ -166,3 +166,7 @@ public class CustomRevisionEntity extends DefaultRevisionEntity {
 
     // Additional fields if needed
 }
+---------------------------------------------------------
+
+Caused by: org.hibernate.MappingException: Foreign key (FKiai5w7mgj23u1fx331jjlq7y3:merchant_user_audit [rev])) must have same number of columns as the referenced primary key (custom_revision_entity [id,rev])
+
