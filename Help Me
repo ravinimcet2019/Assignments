@@ -660,3 +660,47 @@ public class AggSbiSmsGateway {
     }
 
 error_code=10008&error_desc=MESSAGE_TEMPLATE_VERIFY_FAILED&umid=11250108115038315248070032
+
+
+public boolean sendSmsNewCode(SmsDTO smsDTO) {
+    logger.info("Now new WebClient code gonna execute", smsDTO);
+    logger.info("ClassName - SmsClient, MethodName - sendSms, Method-start");
+    System.out.println("Now new WebClient code gonna execute: " + smsDTO);
+
+    // Prepare a Map to store error details if needed
+    Map<String, String> errorDetails = new HashMap<>();
+
+    HttpStatusCode status = getWebClient().post()
+            .uri(smsURL)
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+            .header(HttpHeaders.AUTHORIZATION, createBasicAuthHeader(smsDTO.getUserName(), smsDTO.getPwd()))
+            .bodyValue(getSMSData(smsDTO))
+            .retrieve()
+            .onStatus(HttpStatusCode::isError, response -> response
+                    .bodyToMono(String.class)
+                    .flatMap(errorBody -> {
+                        // Parse error response and store in Map
+                        Arrays.stream(errorBody.split("&"))
+                                .map(pair -> pair.split("="))
+                                .forEach(pair -> errorDetails.put(pair[0], pair.length > 1 ? pair[1] : ""));
+
+                        logger.error("Error in SMS response: {}", errorDetails);
+
+                        // Create and throw a custom exception with parsed error details
+                        return Mono.error(new NotificationException(
+                                String.valueOf(response.statusCode().value()),
+                                "Error during request: " + errorDetails.getOrDefault("error_desc", "Unknown error")
+                        ));
+                    }))
+            .toBodilessEntity()
+            .map(ResponseEntity::getStatusCode)
+            .block(); // Blocking for simplicity in this example
+
+    assert status != null;
+    if (status.is2xxSuccessful()) {
+        return true;
+    } else {
+        throw new NotificationException(NotificationConstant.FAILURE_CODE, 
+                MessageFormat.format(NotificationConstant.FAILURE_MSG, "SMS"));
+    }
+}
