@@ -629,4 +629,34 @@ public class AggSbiSmsGateway {
 		    return "Basic " + new BASE64Encoder().encode(authString.getBytes());
 		  }
 }
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+    public boolean sendSmsNewCode(SmsDTO smsDTO) {
+
+        logger.info("Now new webClient code gonna execute", smsDTO);
+        logger.info("ClassName - SmsClient,MethodName - sendSMS,Method-start");
+        System.out.println("Now new webClient code gonna execute: " + smsDTO);
+        HttpStatusCode status = getWebClient().post()
+                .uri(smsURL)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, createBasicAuthHeader(smsDTO.getUserName(), smsDTO.getPwd()))
+                .bodyValue(getSMSData(smsDTO)).retrieve()
+                .onStatus(HttpStatusCode::isError, response -> response
+                        .bodyToMono(String.class)
+                        .doOnNext(error -> logger.error("Error in SMS response: {}", error))
+                        .then(Mono.error(new NotificationException(
+                                String.valueOf(response.statusCode().value()),
+                                "Error during request " + response.headers().asHttpHeaders()))))
+                .toBodilessEntity()
+                .map(ResponseEntity::getStatusCode)
+                .block(); // Blocking for simplicity in this example
+
+        assert status != null;
+        if (status.is2xxSuccessful()) {
+            return true;
+        } else {
+            throw new NotificationException(NotificationConstant.FAILURE_CODE, MessageFormat.format(NotificationConstant.FAILURE_MSG, "SMS"));
+        }
+    }
+
+error_code=10008&error_desc=MESSAGE_TEMPLATE_VERIFY_FAILED&umid=11250108115038315248070032
