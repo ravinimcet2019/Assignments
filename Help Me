@@ -776,3 +776,76 @@ public class MerchantUserSpecification {
         };
     }
 }
+------------------------------------------------------
+
+
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.StringUtils;
+
+import javax.persistence.criteria.Predicate;
+import java.time.LocalDateTime;
+
+public class MerchantUserSpecification {
+
+    public static Specification<MerchantUser> searchUsers(
+            String userName,
+            String name,
+            String mobile,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            String status) {
+        return (root, query, criteriaBuilder) -> {
+            Predicate predicate = criteriaBuilder.conjunction();
+
+            // If all parameters are null, return all data
+            if (!StringUtils.hasText(userName) &&
+                !StringUtils.hasText(name) &&
+                !StringUtils.hasText(mobile) &&
+                fromDate == null &&
+                toDate == null &&
+                !StringUtils.hasText(status)) {
+                return predicate; // No filters applied, return all data
+            }
+
+            // Filter by userName (partial match)
+            if (StringUtils.hasText(userName)) {
+                predicate = criteriaBuilder.and(predicate,
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("userId")), "%" + userName.toLowerCase() + "%"));
+            }
+
+            // Filter by name (firstName, middleName, lastName combined)
+            if (StringUtils.hasText(name)) {
+                Predicate namePredicate = criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + name.toLowerCase() + "%"),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("middleName")), "%" + name.toLowerCase() + "%"),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + name.toLowerCase() + "%")
+                );
+                predicate = criteriaBuilder.and(predicate, namePredicate);
+            }
+
+            // Filter by mobile (partial match)
+            if (StringUtils.hasText(mobile)) {
+                predicate = criteriaBuilder.and(predicate,
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("mobilePhone")), "%" + mobile.toLowerCase() + "%"));
+            }
+
+            // Filter by date range (fromDate and toDate)
+            if (fromDate != null) {
+                predicate = criteriaBuilder.and(predicate,
+                        criteriaBuilder.greaterThanOrEqualTo(root.get("createdDate"), fromDate));
+            }
+            if (toDate != null) {
+                predicate = criteriaBuilder.and(predicate,
+                        criteriaBuilder.lessThanOrEqualTo(root.get("createdDate"), toDate));
+            }
+
+            // Filter by status
+            if (StringUtils.hasText(status)) {
+                predicate = criteriaBuilder.and(predicate,
+                        criteriaBuilder.equal(root.get("status"), status));
+            }
+
+            return predicate;
+        };
+    }
+}
