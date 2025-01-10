@@ -1,0 +1,572 @@
+package com.sbi.payagg.util;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.Authenticator;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.net.ssl.HttpsURLConnection;
+
+import com.sbi.payagg.util.GenericExceptionLog;
+
+import sun.misc.BASE64Encoder;
+
+
+
+/**********************************************************************************
+ * Class Name: AggSbiSmsGateway Class Description: This class is used to POST
+ * SMS to the Gateway. Created Date: Monday, May 12, 2014
+ * 
+ * @version: 1.0
+ ***********************************************************************************/
+
+public class AggSbiSmsGateway {
+
+	
+	private static final String COMPONENTNAME = "AggSbiSmsGateway";
+
+	//old method
+	public boolean sendSms(ArrayList gtwyMapComponentData, String mobileNumber, String textMessage) {
+		//GenericExceptionLog.log("sendSms()", "AggSbiSmsGateway");
+		String responseMsg = "", dataStr = "", smsUrl = "", dcode = "", subuid = "", pwd = "", sender = "", txtMessage = "";// pno="",
+																															// msgtxt="",
+																															// msgtype="",
+																															// intflag="";
+		boolean status = false;
+		try {
+
+			//GenericExceptionLog.log("sendSms(): gtwyMapComponentData: " + gtwyMapComponentData.toString(), "AggSbiSmsGateway");
+			smsUrl = gtwyMapComponentData.get(10).toString();
+			dcode = gtwyMapComponentData.get(7).toString();
+			subuid = gtwyMapComponentData.get(5).toString();
+			pwd = gtwyMapComponentData.get(6).toString();
+			sender = gtwyMapComponentData.get(9).toString();
+			//GenericExceptionLog.log("sendSms(): smsUrl " + smsUrl, "AggSbiSmsGateway");
+
+			// txtMessage = textMessage.replaceAll("\\s", "+");
+			txtMessage = URLEncoder.encode(textMessage, "UTF-8");
+
+			//GenericExceptionLog.log("txtMessage(): txtMessage " + txtMessage, "AggSbiSmsGateway");
+
+			dataStr += "dcode=" + dcode;
+			dataStr += "&";
+			dataStr += "subuid=" + subuid;
+			dataStr += "&";
+			dataStr += "pwd=" + pwd;
+			dataStr += "&";
+			dataStr += "sender=" + sender;
+			dataStr += "&";
+			dataStr += "pno=" + mobileNumber;
+			dataStr += "&";
+			dataStr += "msgtxt=" + txtMessage;
+			dataStr += "&";
+			dataStr += "msgtype=S";
+			dataStr += "&";
+			dataStr += "intflag=1";
+			//GenericExceptionLog.log("sendSms(): dataStr " + dataStr, "AggSbiSmsGateway");
+
+			// responseMsg =
+			// AggGatewayURLConnection.smsUrlConnection(smsUrl,dataStr);
+
+			String smsRequestURL = smsUrl.concat("?").concat(dataStr);
+			URL myUrl = new URL(smsRequestURL);
+			//GenericExceptionLog.log("Before url connection", "AggSbiSmsGateway");
+
+			URLConnection uc = myUrl.openConnection();
+		      
+
+			//GenericExceptionLog.log("After url connection", "AggSbiSmsGateway");
+
+			// uc.getContent();
+
+			//GenericExceptionLog.log("After uc getContent()", "AggSbiSmsGateway");
+
+			String inputLine = "", responseCode = "";
+			InputStreamReader isr = new InputStreamReader(uc.getInputStream());
+			//GenericExceptionLog.log("isr" + isr, "AggSbiSmsGateway");
+			BufferedReader in = new BufferedReader(isr);
+			while ((inputLine = in.readLine()) != null) {
+				responseCode += inputLine;
+			}
+			in.close();
+			isr.close();
+			//GenericExceptionLog.log("After  URLConnection: responseCode-->" + responseCode, "AggSbiSmsGateway");
+
+			if (responseCode != "" && !responseCode.equals("") && responseCode.startsWith("APP-AGGR")) {
+				status = true;
+			}
+			//GenericExceptionLog.log("After  URLConnection: status-->" + status, "AggSbiSmsGateway");
+
+		} catch (Exception e) {
+			GenericExceptionLog.exceptionJava(e, "AggSbiSmsGateway.java :Error in Response Message for :"+txtMessage, "AggSbiSmsGateway");
+
+		}
+		return status;
+	}
+//new method by punam on 6 feb 2020
+	public boolean sendSmsUpdated(ArrayList gtwyMapComponentData,String mobileNumber,String textMessage,String contentType)
+	{
+		
+		GenericExceptionLog.log("in sendSmsUpdated "+gtwyMapComponentData+"mobileNumber "+mobileNumber+"textMessage "+textMessage+gtwyMapComponentData.get(0),"AggSbiSmsGateway");
+
+		
+         String  dataStr="", smsUrl="",  pwd="", txtMessage="",uname="";
+         
+         
+         String sender_id="",intflag="0",county_code="",charging="";
+         
+         int counter=0;//added for sms retry
+          
+		   boolean status=false;
+			try{
+				
+
+				           smsUrl      = gtwyMapComponentData.get(10).toString();
+				           pwd      = gtwyMapComponentData.get(6).toString();
+				           uname=gtwyMapComponentData.get(5).toString();
+				           county_code=gtwyMapComponentData.get(1).toString();
+				           
+				          
+				           if(county_code.equalsIgnoreCase("DOM"))
+				        		   {
+				           intflag="0";
+				           charging="0";
+				        		   }else
+				        		   {
+				        			   intflag="1";	  
+				        			   charging="1";
+				        		   }
+				           
+				           sender_id=gtwyMapComponentData.get(9).toString(); //sender name sbiepay
+				           
+				           
+				           //content_type=text&sender_id=SBePay&mobile=9890372282&message=Hi Poonam this is test SMS from SBIePay&intflag=0&charging=0
+				           GenericExceptionLog.log("smsUrl==="+smsUrl+"pwd==="+pwd+"sender_id==="+sender_id+"contentType==="+contentType+"intflag==="+intflag+"charging==="+charging+"mobile===","AggSbiSmsGateway");
+				           
+				        
+				           
+				            txtMessage = URLEncoder.encode(textMessage, "UTF-8");
+				          
+				          //  GenericExceptionLog.log("txtMessage(): txtMessage "+txtMessage, "AggSbiSmsGateway");
+				           
+				            // new dataStr
+				            dataStr += "content_type=" +contentType ;
+							dataStr += "&";
+							dataStr += "sender_id=" +sender_id;
+							dataStr += "&";
+							dataStr += "mobile=" +mobileNumber ;
+							dataStr += "&";
+							dataStr += "message=" +txtMessage ;
+							dataStr += "&";
+							dataStr += "intflag=" +intflag ;
+							dataStr += "&";
+							dataStr += "charging="+charging;
+							
+						 GenericExceptionLog.log("sendSms(): dataStr Request sending..... "+dataStr, COMPONENTNAME); 
+						 
+						
+                	       AggSbiSmsGateway smsObj = new AggSbiSmsGateway();
+                	      
+
+				           int responseCode=smsObj.smsAuthConnectMethod(uname,pwd,dataStr,smsUrl,counter);		          
+                	       
+                	     
+
+				           if(responseCode==200){
+				        	   status = true; 
+				           }
+				    
+				           GenericExceptionLog.log("After  URLConnection: responseCode-->"+responseCode +"status "+status, COMPONENTNAME);
+							     
+					   
+					    }catch(NullPointerException e){
+					        GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java NullPointerException :Error in Response Message", COMPONENTNAME);	
+
+			}
+			catch(Exception e){
+					        GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java :Error in Response Message", COMPONENTNAME);	
+
+			}
+		    return status;  
+		
+	}
+	
+	/* private int smsAuthConnectMethod(String uname,String password,String dataString,String smsUrl)
+	  {
+		  int returnCode =0;
+	    try
+	    {
+	    
+	    	
+
+	      URL myUrl = new URL(smsUrl);
+	      HttpsURLConnection conn = null;
+	    
+	       
+	        conn = (HttpsURLConnection)myUrl.openConnection();
+	      
+	      conn.setRequestMethod("POST");
+	      String authstr = prepAuthStr(uname, password);
+	      GenericExceptionLog.log("HTTP-AUTH:  Authorization: ","AggSbiSmsGateway");
+	      conn.setRequestProperty("Authorization", authstr);
+	      conn.setDoOutput(true);
+	      GenericExceptionLog.log("HTTP-WOUT:  dataString: " + dataString,"AggSbiSmsGateway");
+	      OutputStream out = conn.getOutputStream();
+	      out.write(dataString.getBytes());
+	      out.close();
+	      GenericExceptionLog.log("HTTPS-REQ:  Connect... Done","AggSbiSmsGateway");
+	      returnCode = conn.getResponseCode();
+	      GenericExceptionLog.log("HTTP-RESP:  RCode: " + returnCode,"AggSbiSmsGateway");
+	      InputStream is = conn.getInputStream();
+	      InputStreamReader isr = new InputStreamReader(is);
+	      BufferedReader br = new BufferedReader(isr);
+
+	      StringBuilder sbResp = new StringBuilder();
+	      String inputLine;
+	      while ((inputLine = br.readLine()) != null)
+	      {
+	        sbResp.append(inputLine);
+	      }
+
+	      GenericExceptionLog.log("HTTPS-RESP:  Read " + sbResp.toString(),"AggSbiSmsGateway" );
+	      br.close();
+	    } catch (MalformedURLException e) {
+	    	
+	        GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java :Error in Response Message", "AggSbiSmsGateway");	
+
+	    } catch (IOException e) {
+	        GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java :Error in Response Message", "AggSbiSmsGateway");	
+	    } catch (Exception e) {
+	        GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java :Error in Response Message", "AggSbiSmsGateway");	
+	    }
+	    return returnCode;
+	  }*/
+	
+	
+	//added on 17Mar21
+	private int smsAuthConnectMethod(String uname, String password,String dataString, String smsUrl,int counter) {
+		int returnCode = 0;
+		String authstr = "";
+		
+		if(counter<3)
+		{	
+			counter++;
+			GenericExceptionLog.log("Counter inside smsAuthConnectMethodRetry method"+counter,COMPONENTNAME);
+			
+		try {
+					URL myUrl = new URL(smsUrl);
+					HttpsURLConnection conn = null;
+					
+					GenericExceptionLog.log("HTTP-URL:  Connecting : smsAuthConnectMethod method"+smsUrl,COMPONENTNAME);
+					/*System.setProperty("https.proxySet", "true");
+					System.setProperty("https.proxyHost",FetchProperties.getServerProperty("PROXY_IP"));
+					System.setProperty("https.proxyPort",FetchProperties.getServerProperty("PROXY_PORT"));*/
+					java.util.Properties systemSettings = System.getProperties(); 
+					
+					
+					systemSettings.put("https.proxySet","false");
+					systemSettings.remove("https.proxyHost");
+					systemSettings.remove("https.proxyPort");
+					Authenticator.setDefault(null);
+					
+					
+					
+					conn = (HttpsURLConnection) myUrl.openConnection();
+					GenericExceptionLog.log("conn"+conn,COMPONENTNAME);
+					conn.setRequestMethod("POST");
+					
+					authstr = prepAuthStr(uname, password);
+					GenericExceptionLog.log("HTTP-AUTH:  Authorization:: smsAuthConnectMethod method"+smsUrl,COMPONENTNAME);
+					//added for header value display we need to remove on production
+					
+//					Map<String, List<String>> map = conn.getHeaderFields();
+//					for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+//					    GenericExceptionLog.log(" header value Key "+entry.getKey()+",header Value :"+entry.getValue(),COMPONENTNAME);
+//					}
+					
+					conn.setRequestProperty("Authorization", authstr);
+					conn.setDoOutput(true);
+					conn.setConnectTimeout(30000);
+					conn.setReadTimeout(30000);
+					conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+					GenericExceptionLog.log("HTTP-WOUT:  dataString:: smsAuthConnectMethod method"+dataString,COMPONENTNAME);
+					
+					
+					OutputStream out = conn.getOutputStream();
+					out.write(dataString.getBytes());
+					out.close();
+					GenericExceptionLog.log("HTTPS-REQ:  Connect... Done smsAuthConnectMethod",COMPONENTNAME);
+				
+					returnCode = conn.getResponseCode();
+					GenericExceptionLog.log("HTTP-RESP:  RCode:: smsAuthConnectMethod method"+returnCode,COMPONENTNAME);
+					
+					
+					if(returnCode==200)
+					{
+						InputStream is = conn.getInputStream();
+						InputStreamReader isr = new InputStreamReader(is);
+						BufferedReader br = new BufferedReader(isr);
+			
+						StringBuilder sbResp = new StringBuilder();
+						String inputLine;
+						while ((inputLine = br.readLine()) != null) {
+							sbResp.append(inputLine);
+						}
+						  
+						GenericExceptionLog.log("HTTPS-RESP:  Read : smsAuthConnectMethod " + sbResp.toString(),COMPONENTNAME );
+						
+						br.close();
+						is.close();
+						isr.close();
+					
+						}
+						else
+						{
+							GenericExceptionLog.log("Inside else "  ,COMPONENTNAME );
+						}
+				}  catch (Exception e) {
+				
+					 GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java: smsAuthConnectMethod  :Error in Response Message", COMPONENTNAME);	
+					 
+					 if(returnCode!=200)
+					 {
+					 returnCode= smsAuthConnectMethodRetry(uname, password, dataString, smsUrl,counter);	
+					 
+					 GenericExceptionLog.log("returnCode : smsAuthConnectMethodRetry "+returnCode);
+					
+					 }
+				 
+			}
+		
+		}
+		else
+		{
+			GenericExceptionLog.log("dvUrlConn :: Inside count else Block", COMPONENTNAME);
+		}
+		
+		
+		return returnCode;
+	}
+
+	
+	
+	
+	
+	private int smsAuthConnectMethodRetry(String uname, String password,String dataString, String smsUrl,int counter) {
+			int returnCode = 0;
+			String authstr = "";
+			
+			GenericExceptionLog.log("Inside smsAuthConnectMethodRetry method",COMPONENTNAME);
+		
+			
+			if(counter<3)
+			{
+				counter++;
+				GenericExceptionLog.log("Counter inside smsAuthConnectMethodRetry method"+counter,COMPONENTNAME);
+				
+			
+			try {
+				URL myUrl = new URL(smsUrl);
+				HttpsURLConnection conn = null;
+				
+				GenericExceptionLog.log("HTTP-URL:  Connecting : smsAuthConnectMethodRetry method"+smsUrl,COMPONENTNAME);
+				
+				conn = (HttpsURLConnection) myUrl.openConnection();
+				conn.setRequestMethod("POST");
+				authstr = prepAuthStr(uname, password);
+				GenericExceptionLog.log("HTTP-AUTH:  Authorization::  Connecting : smsAuthConnectMethodRetry method"+smsUrl,COMPONENTNAME);
+				
+				conn.setRequestProperty("Authorization", authstr);
+				conn.setDoOutput(true);			
+				
+				GenericExceptionLog.log("HTTP-WOUT:  dataString : smsAuthConnectMethodRetry method"+dataString,COMPONENTNAME);	
+				
+				//added for header value display we need to remove on production
+				
+				Map<String, List<String>> map = conn.getHeaderFields();
+				for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+				    GenericExceptionLog.log(" retry header value Key "+entry.getKey()+", retry header Value :"+entry.getValue(),COMPONENTNAME);
+				}
+				OutputStream out = conn.getOutputStream();
+				out.write(dataString.getBytes());
+				out.close();				
+				GenericExceptionLog.log("HTTPS-REQ:  Connect... Done : smsAuthConnectMethodRetry method"+dataString,COMPONENTNAME);				
+				returnCode = conn.getResponseCode();
+				GenericExceptionLog.log("HTTP-RESP:  RCode : smsAuthConnectMethodRetry method"+returnCode,COMPONENTNAME);
+				
+				if(returnCode==200)
+				{
+				
+				InputStream is = conn.getInputStream();
+				InputStreamReader isr = new InputStreamReader(is);
+				BufferedReader br = new BufferedReader(isr);
+
+				StringBuilder sbResp = new StringBuilder();
+				String inputLine;
+				while ((inputLine = br.readLine()) != null) {
+					sbResp.append(inputLine);
+				}
+
+				GenericExceptionLog.log("HTTPS-RESP:  Read : smsAuthConnectMethodRetry "+ sbResp.toString(),COMPONENTNAME);
+				
+				br.close();
+				is.close();
+				isr.close();
+				}
+				else
+				{
+					GenericExceptionLog.log("Inside Else return Code !=200 : smsAuthConnectMethodRetry ",COMPONENTNAME);
+				}
+			   }  
+				catch (Exception e) {
+				 GenericExceptionLog.log("AggSbiSmsGateway.java: smsAuthConnectMethodRetry  :Error in Response Message", COMPONENTNAME);	
+				 
+				 if(returnCode!=200)
+				 {
+				 returnCode= smsAuthConnectMethod(uname, password, dataString, smsUrl,counter);	
+				 
+				 GenericExceptionLog.log("returnCode : smsAuthConnectMethodRetry "+returnCode,COMPONENTNAME);
+				 }
+				 GenericExceptionLog.exceptionJava(e,"Exception in smsAuthConnectMethodRetry ", COMPONENTNAME);
+				
+			}
+			
+			}
+			else
+			{
+				GenericExceptionLog.log("smsAuthConnectMethodRetry :: Inside count else Block", COMPONENTNAME);
+			}
+			
+	
+			return returnCode;
+			
+		}
+	
+	 private String prepAuthStr(String unm, String pswd) {
+		    String authString = unm + ":" + pswd;
+		    return "Basic " + new BASE64Encoder().encode(authString.getBytes());
+		  }
+}
+-------------------------------------------------------------------------------------------------------
+
+package com.sbi.epay.notification.thirdpartyservice;
+
+import com.sbi.epay.notification.client.ApiClient;
+import com.sbi.epay.notification.exception.NotificationException;
+import com.sbi.epay.notification.model.SmsDto;
+import com.sbi.epay.notification.util.NotificationConstant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import reactor.core.publisher.Mono;
+
+import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Class Name: SmsClient
+ * *
+ * Description:smsClient extends ApiClient it holds object mapper and have constructor this class have sendSMS functionality which take smsDto as Parameter
+ * *
+ * Author: V1017903(bhushan wadekar)
+ * Copyright (c) 2024 [State Bank of India]
+ * All rights reserved
+ * *
+ * Version:1.0
+ */
+
+public class SmsClient extends ApiClient {
+
+    public static final String CONTENT_TYPE = "content_type";
+    public static final String SENDER_ID = "sender_id";
+    public static final String MOBILE = "mobile";
+    public static final String MESSAGE = "message";
+    public static final String INT_FLAG = "intflag";
+    public static final String CHARGING = "charging";
+
+    private final String smsBasePath;
+    private final String smsUserName;
+    private final String smsPassword;
+    private final int smsIntFlag;
+    private final int smsCharging;
+    private final String smsURL;
+    private final String smsContentType;
+    private final String smsSenderId;
+
+
+    Logger logger = LoggerFactory.getLogger(this.getClass().getName());
+
+    /**
+     * This constructor used for baseUrl and objectMapper
+     */
+    public SmsClient(String smsBasePath, String smsUserName, String smsPassword, int smsIntFlag, int smsCharging, String smsURL, String smsContentType, String smsSenderId) {
+        super(smsBasePath);
+        this.smsBasePath = smsBasePath;
+        this.smsUserName = smsUserName;
+        this.smsPassword = smsPassword;
+        this.smsContentType = smsContentType;
+        this.smsSenderId = smsSenderId;
+        this.smsIntFlag = smsIntFlag;
+        this.smsCharging = smsCharging;
+        this.smsURL = smsURL;
+    }
+
+    /**
+     * This method will be used for sending sms
+     *
+     * @param smsDto for sending sms
+     * @return boolean true or false
+     * @throws NotificationException if any exception occurs
+     */
+    public boolean sendSMS(SmsDto smsDto) throws NotificationException {
+        logger.debug("SMS notification start executed for smsData {} ", smsDto);
+        try {
+            Map<String, String> errorDetails = new HashMap<>();
+            HttpStatusCode status = getWebClient().post().uri(smsBasePath + smsURL).header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE).header(HttpHeaders.AUTHORIZATION, createBasicAuthHeader(smsUserName, smsPassword)).bodyValue(getSMSData(smsDto)).retrieve().onStatus(HttpStatusCode::isError, response -> response.bodyToMono(String.class).flatMap(errorBody -> {
+                logger.error("Error response of SMS notification is {} for smsData {} ", errorBody, smsDto);
+                Arrays.stream(errorBody.split("&")).map(pair -> pair.split("=")).forEach(pair -> errorDetails.put(pair[0], pair.length > 1 ? pair[1] : ""));
+                return Mono.error(new NotificationException(response.statusCode().toString(), "Error during request: " + errorDetails));
+            })).toBodilessEntity().map(ResponseEntity::getStatusCode).block(); // Blocking for simplicity in this example
+
+            assert status != null;
+            if (status.is2xxSuccessful()) {
+                logger.debug("Success status of SMS notification is {} for smsData {} ", status, smsDto);
+                return true;
+            } else {
+                logger.error("Error status of SMS notification is {} for smsData {} ", status, smsDto);
+                throw new NotificationException(NotificationConstant.FAILURE_CODE, MessageFormat.format(NotificationConstant.FAILURE_MSG, "SMS"));
+            }
+        } catch (Exception e) {
+            logger.error("Error in SMS notification {} for smsData {} ", e.getMessage(), smsDto);
+            throw new NotificationException(NotificationConstant.FAILURE_CODE, MessageFormat.format(NotificationConstant.FAILURE_MSG, "SMS"));
+        }
+    }
+
+    private String createBasicAuthHeader(String username, String password) {
+        // Combine username and password with a colon
+        String credentials = username + ":" + password;
+        // Encode the credentials using Base64
+        return Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String getSMSData(SmsDto smsDto) {
+        return Map.of(CONTENT_TYPE, smsContentType, SENDER_ID, smsSenderId, MOBILE, smsDto.getMobileNumber(), MESSAGE, smsDto.getMessage(), INT_FLAG, smsIntFlag, CHARGING, smsCharging).toString();
+    }
+
+}
