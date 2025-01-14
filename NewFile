@@ -149,3 +149,6 @@ public class DateConverter {
        "FROM MerchantInfo mi " +
        "WHERE TRUNC(DATE '1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) IN :days")
 List<Object[]> findMidsByExactDate(@Param("days") List<String> days);
+
+Caused by: org.hibernate.query.SyntaxException: At 1:26 and token ''1970-01-01'', no viable alternative at input 'SELECT mi.mid, TRUNC(DATE *'1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) FROM MerchantInfo mi WHERE TRUNC(DATE '1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) IN :days' [SELECT mi.mid, TRUNC(DATE '1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) FROM MerchantInfo mi WHERE TRUNC(DATE '1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) IN :days]
+
