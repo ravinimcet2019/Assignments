@@ -82,3 +82,9 @@ Caused by: org.hibernate.query.sqm.produce.function.FunctionArgumentException: P
        "FUNCTION('TRUNC', FUNCTION('TO_DATE', TO_CHAR(:validityEndTime / 1000, 'YYYY-MM-DD'), 'YYYY-MM-DD'))")
 List<String> findMidsByExactDate(@Param("validityEndTime") Long validityEndTime);
 
+
+
+@Query("SELECT mi.mid FROM MerchantInfo mi " +
+       "WHERE FUNCTION('TRUNC', FUNCTION('FROM_UNIXTIME', mi.validityEndTime / 1000)) = " +
+       "FUNCTION('TRUNC', FUNCTION('FROM_UNIXTIME', :validityEndTime / 1000))")
+List<String> findMidsByExactDate(@Param("validityEndTime") Long validityEndTime);
