@@ -91,3 +91,5 @@ List<String> findMidsByExactDate(@Param("validityEndTime") Long validityEndTime)
 
 @Query("SELECT mi.mid FROM MerchantInfo mi WHERE FUNCTION('TRUNC', FUNCTION('TO_DATE', mi.validityEndTime / 1000, 'YYYY-MM-DD')) = FUNCTION('TRUNC', FUNCTION('TO_DATE', :validityEndTime / 1000, 'YYYY-MM-DD'))")
 List<String> findMidsByExactDate(@Param("validityEndTime") Long validityEndTime);
+
+Caused by: org.hibernate.query.sqm.produce.function.FunctionArgumentException: Parameter 1 of function 'to_date()' has type 'STRING', but argument is of type 'java.lang.Long' mapped to 'BIGINT'
