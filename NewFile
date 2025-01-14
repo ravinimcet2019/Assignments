@@ -88,3 +88,6 @@ List<String> findMidsByExactDate(@Param("validityEndTime") Long validityEndTime)
        "WHERE FUNCTION('TRUNC', FUNCTION('FROM_UNIXTIME', mi.validityEndTime / 1000)) = " +
        "FUNCTION('TRUNC', FUNCTION('FROM_UNIXTIME', :validityEndTime / 1000))")
 List<String> findMidsByExactDate(@Param("validityEndTime") Long validityEndTime);
+
+@Query("SELECT mi.mid FROM MerchantInfo mi WHERE FUNCTION('TRUNC', FUNCTION('TO_DATE', mi.validityEndTime / 1000, 'YYYY-MM-DD')) = FUNCTION('TRUNC', FUNCTION('TO_DATE', :validityEndTime / 1000, 'YYYY-MM-DD'))")
+List<String> findMidsByExactDate(@Param("validityEndTime") Long validityEndTime);
