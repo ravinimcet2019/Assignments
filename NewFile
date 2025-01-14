@@ -100,3 +100,11 @@ Caused by: org.hibernate.query.sqm.produce.function.FunctionArgumentException: P
 
 @Query("SELECT mi.mId FROM MerchantInfo mi WHERE FUNCTION('TRUNC', FUNCTION('TO_DATE', TO_CHAR(mi.validityEndTime / 1000, 'YYYY-MM-DD'), 'YYYY-MM-DD')) = FUNCTION('TRUNC', FUNCTION('TO_DATE', TO_CHAR(:validityEndTime / 1000, 'YYYY-MM-DD'), 'YYYY-MM-DD'))")
 List<String> findMidsByExactDate(@Param("validityEndTime") Long validityEndTime);
+
+
+@Query(value = "SELECT mi.mId " +
+               "FROM MerchantInfo mi " +
+               "WHERE TRUNC(TO_DATE(TO_CHAR(mi.validityEndTime / 1000, 'YYYY-MM-DD'), 'YYYY-MM-DD')) = " +
+               "      TRUNC(TO_DATE(TO_CHAR(:validityEndTime / 1000, 'YYYY-MM-DD'), 'YYYY-MM-DD'))", 
+       nativeQuery = true)
+List<String> findMidsByExactDate(@Param("validityEndTime") Long validityEndTime);
