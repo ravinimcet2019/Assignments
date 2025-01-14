@@ -142,3 +142,10 @@ public class DateConverter {
         System.out.println("Formatted Date: " + formattedDate); // Output: 07-Jan-2025
     }
 }
+
+
+@Query("SELECT mi.mid, " +
+       "TRUNC(DATE '1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) " +
+       "FROM MerchantInfo mi " +
+       "WHERE TRUNC(DATE '1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) IN :days")
+List<Object[]> findMidsByExactDate(@Param("days") List<String> days);
