@@ -1,0 +1,72 @@
+package com.epay.merchant.service;
+
+import com.epay.merchant.dao.AlertMasterDao;
+import com.epay.merchant.dto.AlertManagementDto;
+import com.epay.merchant.dto.AlertMasterDto;
+import com.epay.merchant.util.DateTimeUtils;
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@RequiredArgsConstructor
+@Component
+public class AccountExpirationScheduler {
+
+    private final AlertMasterDao alertMasterDao;
+    private final LoggerUtility logger = LoggerFactoryUtility.getLogger(this.getClass());
+
+    @Scheduled(cron = "${scheduled.cron.time}")
+    public void checkAccountExpiry() {
+        logger.info("Starting account expiry check.");
+        List<AlertMasterDto> alertMasterDtoList = alertMasterDao.findAllAlertDaysByName("Account Expiry");
+
+        if (alertMasterDtoList.isEmpty()) {
+            logger.info("No alert days found for 'Account Expiry'. Exiting.");
+            return;
+        }
+
+        Map<String, Long> dayAndTimeMap = createDayAndTimeMap(alertMasterDtoList);
+        Map<String, AlertMasterDto> dayAndAlertMasterDtoMapped = mapAlertMasterDtoWithDay(alertMasterDtoList);
+        Map<String, List<String>> mapOfAllMidsWithDay = alertMasterDao.findMidsForEachDay(dayAndTimeMap);
+
+        if (mapOfAllMidsWithDay.isEmpty()) {
+            logger.info("No MIDs found for the specified alert days. Exiting.");
+            return;
+        }
+
+        List<AlertManagementDto> alertManagementDtoList = createAlertManagementDtoList(dayAndAlertMasterDtoMapped, mapOfAllMidsWithDay);
+        alertMasterDao.saveAllToAlertManagement(alertManagementDtoList);
+        logger.info("Account expiry check completed. Saved {} alerts.", alertManagementDtoList.size());
+    }
+
+    private Map<String, Long> createDayAndTimeMap(List<AlertMasterDto> alertMasterDtoList) {
+        return alertMasterDtoList.stream()
+                .collect(Collectors.toMap(
+                        AlertMasterDto::getValue,
+                        dto -> DateTimeUtils.getFutureDateByDay(Integer.parseInt(dto.getUnit()))
+                ));
+    }
+
+    private Map<String, AlertMasterDto> mapAlertMasterDtoWithDay(List<AlertMasterDto> alertMasterDtoList) {
+        return alertMasterDtoList.stream()
+                .collect(Collectors.toMap(AlertMasterDto::getValue, dto -> dto));
+    }
+
+    private List<AlertManagementDto> createAlertManagementDtoList(Map<String, AlertMasterDto> dayAndAlertMasterDtoMapped, Map<String, List<String>> mapOfAllMidsWithDay) {
+        return mapOfAllMidsWithDay.entrySet().stream()
+                .flatMap(entry -> entry.getValue().stream()
+                        .map(mid -> AlertManagementDto.builder()
+                                .alertId(dayAndAlertMasterDtoMapped.get(entry.getKey()).getId())
+                                .mId(mid)
+                                .description(dayAndAlertMasterDtoMapped.get(entry.getKey()).getDescription())
+                                .build()))
+                .collect(Collectors.toList());
+    }
+}
