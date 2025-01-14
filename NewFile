@@ -111,3 +111,34 @@ List<String> findMidsByExactDate(@Param("validityEndTime") Long validityEndTime)
 
 
 select MID, TO_CHAR(DATE '1970-01-01' + NUMTODSINTERVAL(VALIDITY_END_TIME/1000, 'SECOND'),'DD-MON-YYYY') As validity_date from merchant_info Where TO_CHAR(DATE '1970-01-01' + NUMTODSINTERVAL(VALIDITY_END_TIME/1000, 'SECOND'),'DD-MON-YYYY') IN ('18-DEC-2025', '07-JAN-2025')
+
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
+public class DateConverter {
+    public static String convertLongToDateString(Long timestamp) {
+        if (timestamp == null) {
+            throw new IllegalArgumentException("Timestamp cannot be null");
+        }
+
+        // Convert Long timestamp to LocalDate
+        LocalDate date = Instant.ofEpochMilli(timestamp)
+                                 .atZone(ZoneId.systemDefault())
+                                 .toLocalDate();
+
+        // Define the formatter for dd-MMM-yyyy
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
+
+        // Format the date to the required format
+        return date.format(formatter);
+    }
+
+    public static void main(String[] args) {
+        Long sampleTimestamp = 1730943523109L; // Example timestamp
+        String formattedDate = convertLongToDateString(sampleTimestamp);
+        System.out.println("Formatted Date: " + formattedDate); // Output: 07-Jan-2025
+    }
+}
