@@ -1,4 +1,4 @@
-package com.epay.merchant.service;
+kopackage com.epay.merchant.service;
 
 import com.epay.merchant.dao.AlertMasterDao;
 import com.epay.merchant.dto.AlertManagementDto;
@@ -152,3 +152,47 @@ List<Object[]> findMidsByExactDate(@Param("days") List<String> days);
 
 Caused by: org.hibernate.query.SyntaxException: At 1:26 and token ''1970-01-01'', no viable alternative at input 'SELECT mi.mid, TRUNC(DATE *'1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) FROM MerchantInfo mi WHERE TRUNC(DATE '1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) IN :days' [SELECT mi.mid, TRUNC(DATE '1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) FROM MerchantInfo mi WHERE TRUNC(DATE '1970-01-01' + NUMTODSINTERVAL(mi.validityEndTime / 1000, 'SECOND')) IN :days]
 
+
+
+INSERT INTO MERCHANT_BANK_ACCOUNT (
+    ID,
+    MID,
+    ACCOUNT_HOLDER_NAME,
+    ACCOUNT_UNIQUE_IDENTIFIER,
+    ACCOUNT_TYPE,
+    ACCOUNT_NUMBER,
+    BANK_NAME,
+    BRANCH_NAME,
+    IFSC_CODE,
+    IS_APPROVED,
+    IS_PRIMARY,
+    APPROVED_REJECTED_BY,
+    REJECTED_REASON,
+    APPROVED_REJECTED_ON,
+    STATUS,
+    CREATED_AT,
+    CREATED_BY,
+    UPDATED_BY,
+    UPDATED_AT
+) 
+VALUES (
+    SYS_GUID(), -- Automatically generates a unique ID
+    'MID123456789', -- Replace with the MID from MERCHANT_INFO
+    'John Doe', -- Account holder name
+    'AUI12345', -- Unique account identifier
+    'SAVINGS', -- Account type
+    '1234567890123456', -- Account number
+    'Bank of XYZ', -- Bank name
+    'Main Branch', -- Branch name
+    'IFSC0001234', -- IFSC code
+    1, -- Is approved (0 for false, 1 for true)
+    1, -- Is primary (0 for false, 1 for true)
+    'AdminUser', -- Approved or rejected by
+    'N/A', -- Rejection reason (if applicable)
+    1672502400, -- Approved/rejected on (epoch time)
+    'ACTIVE', -- Status
+    1672502400, -- Created at (epoch time)
+    'SystemAdmin', -- Created by
+    'SystemAdmin', -- Updated by
+    1672502400  -- Updated at (epoch time)
+);
