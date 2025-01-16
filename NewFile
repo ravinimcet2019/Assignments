@@ -331,3 +331,61 @@ public class BatchRunner implements CommandLineRunner {
 }
 
 
+
+@Configuration
+@EnableBatchProcessing
+public class BatchConfig {
+
+    private final JobRepository jobRepository;
+    private final PlatformTransactionManager transactionManager;
+
+    public BatchConfig(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+        this.jobRepository = jobRepository;
+        this.transactionManager = transactionManager;
+    }
+
+    @Bean
+    public Job job(Step step) {
+        return new JobBuilder("insertReportScheduleJob", jobRepository)
+                .start(step)
+                .build();
+    }
+
+    @Bean
+    public Step step(ItemReader<ReportScheduleManagement> reader, 
+                     ItemProcessor<ReportScheduleManagement, ReportScheduleManagement> processor,
+                     ItemWriter<ReportScheduleManagement> writer) {
+        return new StepBuilder("insertReportScheduleStep", jobRepository)
+                .<ReportScheduleManagement, ReportScheduleManagement>chunk(10, transactionManager)
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
+                .build();
+    }
+}
+
+
+dependencies {
+    // Spring Boot Starter for Spring Batch
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
+
+    // Spring Boot Starter for JPA (for database interaction)
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // H2 Database (Optional: Replace with your preferred database dependency)
+    runtimeOnly 'com.h2database:h2'
+
+    // MySQL Database Driver (if you're using MySQL)
+    runtimeOnly 'mysql:mysql-connector-java'
+
+    // PostgreSQL Database Driver (if you're using PostgreSQL)
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // Lombok (for annotations like @Data, @Builder, etc.)
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Spring Boot Test (for testing)
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.batch:spring-batch-test'
+}
