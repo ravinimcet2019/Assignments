@@ -196,3 +196,37 @@ VALUES (
     'SystemAdmin', -- Updated by
     1672502400  -- Updated at (epoch time)
 );
+
+
+@Configuration
+@EnableBatchProcessing
+public class BatchConfig {
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory entityManagerFactory;
+
+    public BatchConfig(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, EntityManagerFactory entityManagerFactory) {
+        this.jobBuilderFactory = jobBuilderFactory;
+        this.stepBuilderFactory = stepBuilderFactory;
+        this.entityManagerFactory = entityManagerFactory;
+    }
+
+    @Bean
+    public Job job(Step step) {
+        return jobBuilderFactory.get("insertReportScheduleJob")
+                .start(step)
+                .build();
+    }
+
+    @Bean
+    public Step step(ItemReader<ReportScheduleManagement> reader, ItemProcessor<ReportScheduleManagement, ReportScheduleManagement> processor,
+                     ItemWriter<ReportScheduleManagement> writer) {
+        return stepBuilderFactory.get("insertReportScheduleStep")
+                .<ReportScheduleManagement, ReportScheduleManagement>chunk(10)
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
+                .build();
+    }
+}
