@@ -253,3 +253,51 @@ public class S3UploadService {
         return "File uploaded successfully to: " + destinationKey;
     }
 }
+--------------------------------------
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.FileOutputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class S3FileDownloader {
+
+    public static Path downloadFile(String fileAccessUrl) throws IOException, InterruptedException {
+        // Create an HTTP client
+        HttpClient httpClient = HttpClient.newHttpClient();
+
+        // Build the HTTP GET request
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(fileAccessUrl))
+                .GET()
+                .build();
+
+        // Send the request and get the response
+        HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+        // Check if the response is successful
+        if (response.statusCode() != 200) {
+            throw new IOException("Failed to download file. HTTP status code: " + response.statusCode());
+        }
+
+        // Extract filename from the URL
+        String[] urlParts = fileAccessUrl.split("/");
+        String fileName = urlParts[urlParts.length - 1]; // Get the last part of the URL as the filename
+
+        // Create a temporary file
+        Path tempFile = Files.createTempFile(fileName, "");
+
+        // Save the file
+        try (InputStream inputStream = response.body();
+             FileOutputStream fileOutputStream = new FileOutputStream(tempFile.toFile())) {
+            inputStream.transferTo(fileOutputStream);
+        }
+
+        return tempFile;
+    }
+}
