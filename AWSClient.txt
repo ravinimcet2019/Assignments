@@ -210,3 +210,46 @@ s3.region=us-east-1
 s3.access-key=your-access-key
 s3.secret-key=your-secret-key
 s3.bucket-name=your-bucket-name
+-----------------
+
+
+package com.example.s3upload.service;
+
+import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.core.sync.RequestBody;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+
+@Service
+public class S3UploadService {
+
+    private final S3Client s3Client;
+
+    public S3UploadService(S3Client s3Client) {
+        this.s3Client = s3Client;
+    }
+
+    public String uploadFile(String s3Url, String fileName, byte[] fileBytes) throws URISyntaxException {
+        // Parse the S3 URL to extract the bucket name and key
+        URI uri = new URI(s3Url);
+        String bucketName = uri.getHost().split("\\.")[0]; // Extracts 'my-bucket' from 'my-bucket.s3.amazonaws.com'
+        String key = uri.getPath().substring(1); // Extracts 'my-folder/my-file.txt'
+
+        // Adjust the key if needed
+        String destinationKey = key.endsWith("/") ? key + fileName : key + "/" + fileName;
+
+        // Create a PutObjectRequest
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(destinationKey)
+                .build();
+
+        // Upload the file using the byte array
+        s3Client.putObject(putObjectRequest, RequestBody.fromBytes(fileBytes));
+
+        return "File uploaded successfully to: " + destinationKey;
+    }
+}
