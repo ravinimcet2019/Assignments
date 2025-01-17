@@ -120,3 +120,93 @@ public class AWSClientService {
     }
 
 }
+_-----------------
+
+implementation 'software.amazon.awssdk:s3:2.20.18' // Use the latest version
+implementation 'software.amazon.awssdk:auth:2.20.18'
+
+
+package com.example.s3upload.config;
+
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
+
+import java.net.URI;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class S3Config {
+
+    @Value("${s3.endpoint-url}")
+    private String endpointUrl;
+
+    @Value("${s3.region}")
+    private String region;
+
+    @Value("${s3.access-key}")
+    private String accessKey;
+
+    @Value("${s3.secret-key}")
+    private String secretKey;
+
+    @Bean
+    public S3Client s3Client() {
+        AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKey, secretKey);
+
+        return S3Client.builder()
+                .endpointOverride(URI.create(endpointUrl))
+                .region(Region.of(region))
+                .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
+                .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
+                .build();
+    }
+}
+
+
+package com.example.s3upload.service;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+import java.io.IOException;
+import java.nio.file.Paths;
+
+@Service
+public class S3UploadService {
+
+    private final S3Client s3Client;
+
+    public S3UploadService(S3Client s3Client) {
+        this.s3Client = s3Client;
+    }
+
+    public String uploadFile(String bucketName, MultipartFile file) throws IOException {
+        String fileName = file.getOriginalFilename();
+
+        // Create a PutObjectRequest
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(fileName)
+                .build();
+
+        // Upload the file
+        s3Client.putObject(putObjectRequest, Paths.get(file.getOriginalFilename()));
+
+        return "File uploaded successfully: " + fileName;
+    }
+}
+
+
+s3.endpoint-url=https://s3.amazonaws.com
+s3.region=us-east-1
+s3.access-key=your-access-key
+s3.secret-key=your-secret-key
+s3.bucket-name=your-bucket-name
