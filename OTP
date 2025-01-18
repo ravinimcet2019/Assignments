@@ -671,3 +671,66 @@ public class MaskingUtil {
         return maskedPart + visiblePart;
     }
 }
+-----------------------------------------
+
+public class MaskingUtil {
+
+    /**
+     * Masks an account number, showing only the last 4 digits.
+     *
+     * @param accountNumber The account number to be masked.
+     * @return The masked account number.
+     */
+    public static String maskAccountNumber(String accountNumber) {
+        if (accountNumber == null || accountNumber.length() < 4) {
+            throw new IllegalArgumentException("Account number must be at least 4 characters long.");
+        }
+
+        int visibleDigits = 4;
+        String maskedPart = "*".repeat(accountNumber.length() - visibleDigits);
+        String visiblePart = accountNumber.substring(accountNumber.length() - visibleDigits);
+
+        return maskedPart + visiblePart;
+    }
+
+    /**
+     * Masks a mobile number, showing only the last 4 digits.
+     *
+     * @param mobileNumber The mobile number to be masked.
+     * @return The masked mobile number.
+     */
+    public static String maskMobileNumber(String mobileNumber) {
+        if (mobileNumber == null || mobileNumber.length() < 4) {
+            throw new IllegalArgumentException("Mobile number must be at least 4 characters long.");
+        }
+
+        int visibleDigits = 4;
+        String maskedPart = "*".repeat(mobileNumber.length() - visibleDigits);
+        String visiblePart = mobileNumber.substring(mobileNumber.length() - visibleDigits);
+
+        return maskedPart + visiblePart;
+    }
+
+    /**
+     * Masks an email address, hiding part of the local part.
+     *
+     * @param email The email address to be masked.
+     * @return The masked email address.
+     */
+    public static String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            throw new IllegalArgumentException("Invalid email address.");
+        }
+
+        String[] parts = email.split("@");
+        String localPart = parts[0];
+        String domainPart = parts[1];
+
+        if (localPart.length() <= 2) {
+            return "*".repeat(localPart.length()) + "@" + domainPart;
+        }
+
+        String maskedLocalPart = localPart.charAt(0) + "*".repeat(localPart.length() - 2) + localPart.charAt(localPart.length() - 1);
+        return maskedLocalPart + "@" + domainPart;
+    }
+}
