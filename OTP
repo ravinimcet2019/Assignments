@@ -648,3 +648,26 @@ public class AccountExpirationScheduler {
         return alertManagementDtoList;
     }
 }
+---------------------------------------_--------
+
+public class MaskingUtil {
+
+    /**
+     * Masks the given account number, showing only the last 4 digits.
+     * 
+     * @param accountNumber The account number to be masked.
+     * @return The masked account number.
+     */
+    public static String maskAccountNumber(String accountNumber) {
+        if (accountNumber == null || accountNumber.length() < 4) {
+            throw new IllegalArgumentException("Account number must be at least 4 characters long.");
+        }
+
+        // Mask all but the last 4 digits
+        int visibleDigits = 4;
+        String maskedPart = "*".repeat(accountNumber.length() - visibleDigits);
+        String visiblePart = accountNumber.substring(accountNumber.length() - visibleDigits);
+
+        return maskedPart + visiblePart;
+    }
+}
