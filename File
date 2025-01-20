@@ -32,3 +32,27 @@ spring:
 
   kafka:
     bootstrap-servers: dev-cluster-kafka-bootstrap-dev-kafka.apps.dev.sbiepay.sbi:443
+_----------------------------------------------
+
+spring.datasource.username=
+spring.datasource.password=
+
+spring.kafka.bootstrap-servers=dev-cluster-kafka-bootstrap-dev-kafka.apps.dev.sbiepay.sbi:443
+
+# Spring-Kafka SSL Configuration
+spring.kafka.properties.security.protocol=SSL
+spring.kafka.properties.ssl.truststore.location=C:/certs/kafka/dev-cluster-cluster-ca-cert.p12
+spring.kafka.properties.ssl.truststore.password=Xe8FrxOGvVAx
+spring.kafka.properties.ssl.truststore.type=PKCS12
+spring.kafka.properties.ssl.keystore.location=C:/certs/kafka/dev-cluster-clients-ca-cert.p12
+spring.kafka.properties.ssl.keystore.password=J55FITkgEFid
+spring.kafka.properties.ssl.keystore.type=PKCS12
+
+spring.kafka.consumer.number-of-consumer=1
+spring.kafka.topic.partitions=4
+spring.kafka.topic.replication-factor=1
+---------------------------------------
+
+spring.datasource.username=PAYAGGREPORT
+spring.datasource.password=
+spring.kafka.bootstrap-servers=dev-cluster-kafka-bootstrap-dev-kafka.apps.dev.sbiepay.sbi:443
