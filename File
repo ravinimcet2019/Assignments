@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    username:
+    password:
+
+  kafka:
+    bootstrap-servers: dev-cluster-kafka-bootstrap-dev-kafka.apps.dev.sbiepay.sbi:443
+    properties:
+      #Spring-Kafka SSL Configuration for local
+      security.protocol: SSL
+      ssl:
+        truststore:
+          location: C:/certs/kafka/dev-cluster-cluster-ca-cert.p12
+          password: Xe8FrxOGvVAx
+          type: PKCS12
+        keystore:
+          location: C:/certs/kafka/dev-cluster-clients-ca-cert.p12
+          password: J55FITkgEFid
+          type: PKCS12
+    consumer:
+      number-of-consumer: 1
+    topic:
+        partitions: 4
+        replication-factor: 1
+
+---------------
+
+spring:
+  datasource:
+    username: PAYAGGREPORT
+    password:
+
+  kafka:
+    bootstrap-servers: dev-cluster-kafka-bootstrap-dev-kafka.apps.dev.sbiepay.sbi:443
