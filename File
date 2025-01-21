@@ -369,3 +369,34 @@ public class KafkaConsumerConfig {
         return props;
     }
 }
+---------------------------------------------
+
+public class EmailMaskingUtil {
+
+    public static String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            throw new IllegalArgumentException("Invalid email address");
+        }
+
+        String[] parts = email.split("@");
+        String localPart = parts[0];
+        String domainPart = parts[1];
+
+        // Mask local part: Keep first and last character visible
+        String maskedLocalPart = localPart.length() > 2
+                ? localPart.charAt(0) + "****" + localPart.charAt(localPart.length() - 1)
+                : localPart.charAt(0) + "*";
+
+        // Mask domain part: Keep last 3 characters visible
+        String maskedDomainPart = domainPart.length() > 3
+                ? "****" + domainPart.substring(domainPart.length() - 3)
+                : domainPart;
+
+        return maskedLocalPart + "@" + maskedDomainPart;
+    }
+
+    public static void main(String[] args) {
+        String email = "example@gmail.com";
+        System.out.println(maskEmail(email)); // Output: e****e@****com
+    }
+}
