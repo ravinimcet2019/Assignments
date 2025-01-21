@@ -56,3 +56,90 @@ spring.kafka.topic.replication-factor=1
 spring.datasource.username=PAYAGGREPORT
 spring.datasource.password=
 spring.kafka.bootstrap-servers=dev-cluster-kafka-bootstrap-dev-kafka.apps.dev.sbiepay.sbi:443
+
+---------------------------------------------------------------------------------------------------------------
+
+package com.epay.merchant.config.kafka;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.KafkaListenerContainerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Configuration
+public class KafkaConsumerConfig {
+
+    public Map<String, Object> consumerConfigs(KafkaConsumerSettings kafkaConsumerSettings) {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaConsumerSettings.getBootstrapServers());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, kafkaConsumerSettings.getGroupId());
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, kafkaConsumerSettings.isAutoCommitCursor());
+        props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, kafkaConsumerSettings.getAutoCommitCursorIntervalMS());
+        props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, kafkaConsumerSettings.getSessionTimeoutMS());
+        props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, kafkaConsumerSettings.getRequestTimeoutMS());
+        props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, kafkaConsumerSettings.getFetchMaxWaitMS());
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, kafkaConsumerSettings.getMaxPollRecords());
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, kafkaConsumerSettings.getOffsetReset());
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, kafkaConsumerSettings.getKeyDeserializer());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, kafkaConsumerSettings.getValueDeserializer());
+        return props;
+    }
+
+    public ConsumerFactory<String, Object> consumerFactory(KafkaConsumerSettings kafkaConsumerSettings) {
+        return new DefaultKafkaConsumerFactory<>(consumerConfigs(kafkaConsumerSettings));
+    }
+
+    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, Object>> kafkaListenerContainerFactory(KafkaConsumerSettings kafkaConsumerSettings) {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory(kafkaConsumerSettings));
+        factory.setConcurrency(kafkaConsumerSettings.getNumberOfConsumers());
+        return factory;
+    }
+}
+---------------------------------------
+
+package com.epay.merchant.etl.listener;
+
+import com.epay.merchant.exception.MerchantException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+import com.sbi.epay.notification.model.EmailDto;
+import com.sbi.epay.notification.model.SmsDto;
+import com.sbi.epay.notification.service.EmailService;
+import com.sbi.epay.notification.service.SmsService;
+import lombok.RequiredArgsConstructor;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class SendNotificationListener {
+    private final LoggerUtility log = LoggerFactoryUtility.getLogger(this.getClass());
+    private final SmsService smsService;
+    private final EmailService emailService;
+    private final ObjectMapper objectMapper;
+
+    @KafkaListener(topics = "${spring.kafka.topic.merchant.notification.email}")
+    public void onEmailMessage(ConsumerRecord<String, Object> consumerRecord) {
+        log.debug("Send email notification request received for key : {} and value : {}", consumerRecord.key(), consumerRecord.value());
+        try {
+            Object s = consumerRecord.value();
+//            emailService.sendEmail(consumerRecord.value());
+        } catch (MerchantException e) {
+            log.error("Error during onEmailMessage kafka listening message[key:{} and value: {}], error: {}", consumerRecord.key(), consumerRecord.value(), e.getErrorMessage());
+        } catch (Exception e) {
+            log.error("Error during onEmailMessage kafka listening message[key:{} and value: {}], error: {}", consumerRecord.key(), consumerRecord.value(), e.getMessage());
+        }
+
+    }
+}
+
