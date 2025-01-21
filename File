@@ -142,4 +142,83 @@ public class SendNotificationListener {
 
     }
 }
+-----------------------------------------------------------------------------
 
+package com.epay.merchant.config.kafka;
+
+import com.epay.merchant.config.kafka.env.local.KafkaProducerLocalSettings;
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+import lombok.RequiredArgsConstructor;
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SslConfigs;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Class Name: KafkaProducerConfig
+ * *
+ * Description: This is parent for kafka config class.
+ * *
+ * Author: Bhoopendra Rajput
+ * <p>
+ * Copyright (c) 2024 [State Bank of India]
+ * All rights reserved
+ * *
+ * Version:1.0
+ */
+@Configuration
+@RequiredArgsConstructor
+public class KafkaProducerConfig {
+    private final LoggerUtility log = LoggerFactoryUtility.getLogger(this.getClass());
+    private final KafkaProducerSettings kafkaProducerSettings;
+
+    @Bean
+    public KafkaTemplate<String, String> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
+    }
+
+    private ProducerFactory<String, String> producerFactory() {
+        return new DefaultKafkaProducerFactory<>(producerConfigs());
+    }
+
+    private Map<String, Object> producerConfigs() {
+        Map<String, Object> props = new HashMap<>();
+
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProducerSettings.getBootstrapServers());
+        props.put(ProducerConfig.ACKS_CONFIG, kafkaProducerSettings.getAcks());
+        props.put(ProducerConfig.RETRIES_CONFIG, kafkaProducerSettings.getRetries());
+        props.put(ProducerConfig.BATCH_SIZE_CONFIG, kafkaProducerSettings.getBatchSize());
+        props.put(ProducerConfig.LINGER_MS_CONFIG, kafkaProducerSettings.getLingerMs());
+        props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, kafkaProducerSettings.getBufferMemory());
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        if ("local".equalsIgnoreCase(kafkaProducerSettings.getActiveProfile())) {
+            KafkaProducerLocalSettings kafkaProducerLocalSettings = (KafkaProducerLocalSettings) kafkaProducerSettings;
+            props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, kafkaProducerLocalSettings.getSecurityProtocol());
+            props.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, kafkaProducerLocalSettings.getTrustLocation());
+            props.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, kafkaProducerLocalSettings.getTrustPassword());
+            props.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, kafkaProducerLocalSettings.getTrustType());
+            props.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, kafkaProducerLocalSettings.getKeyLocation());
+            props.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, kafkaProducerLocalSettings.getKeyPassword());
+            props.put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, kafkaProducerLocalSettings.getKeyType());
+        }
+        try {
+            props.put(ProducerConfig.CLIENT_ID_CONFIG, InetAddress.getLocalHost().getHostName());
+        } catch (UnknownHostException e) {
+            log.error("Error in producerConfigs : {}", e.getMessage());
+        }
+
+        return props;
+    }
+}
