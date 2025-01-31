@@ -400,3 +400,63 @@ public class EmailMaskingUtil {
         System.out.println(maskEmail(email)); // Output: e****e@****com
     }
 }
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+package com.sbi.epay.sdk.api.client;
+
+import com.sbi.epay.encryptdecrypt.exception.EncryptionDecryptionException;
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+import com.sbi.epay.sdk.api.model.request.CustomerRequest;
+import com.sbi.epay.sdk.api.model.response.CustomerResponse;
+import com.sbi.epay.sdk.exceptions.SBIEpayException;
+import com.sbi.epay.sdk.model.request.EPayCustomerRequest;
+import com.sbi.epay.sdk.utils.EncryptionDecryptionUtil;
+import com.sbi.epay.sdk.utils.constants.SBIEPayAppConstants;
+import lombok.NonNull;
+import org.json.JSONObject;
+
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.List;
+
+import static com.sbi.epay.sdk.utils.constants.SBIEPayErrorConstant.*;
+
+public class CustomerClient extends ApiClient<CustomerResponse> {
+
+    private final LoggerUtility logger = LoggerFactoryUtility.getLogger(this.getClass());
+
+    public CustomerClient(String key, String secret, String encryptionKey) {
+        super(key, secret, encryptionKey);
+    }
+
+    public String create(@NonNull JSONObject ePayCustomerRequest) throws SBIEpayException {
+        try {
+            //Step 1 : Encrypt Customer JSON Request
+            String encryptRequest = EncryptionDecryptionUtil.encryptValue(encryptionKey, ePayCustomerRequest.toString());
+            return createCustomer(encryptRequest);
+        } catch (EncryptionDecryptionException e) {
+            logger.error("Encryption Error in SBI EPay Customer creation, for request {} and error {}", ePayCustomerRequest, e.getMessage());
+            throw new SBIEpayException(ENCRYPTION_ERROR_CODE, MessageFormat.format(ENCRYPTION_ERROR_MSG, ePayCustomerRequest), e);
+        }
+    }
+
+    private String createCustomer(@NonNull String encryptRequest) throws SBIEpayException {
+        List<CustomerResponse> customerResponses = Collections.emptyList();
+        try {
+            // Step 2: Build API Customer Request
+            CustomerRequest customerRequest = CustomerRequest.builder().customerRequest(encryptRequest).build();
+            // Step 3: Call Transaction Customer API
+            customerResponses = post(SBIEPayAppConstants.VERSION, SBIEPayAppConstants.CUSTOMER_CREATE, SBIEPayAppConstants.TX_SERVICE, new JSONObject(customerRequest), CustomerResponse.class);
+            if (customerResponses.isEmpty()) {
+                throw new SBIEpayException(CUSTOMER_ERROR_CODE, MessageFormat.format(CUSTOMER_ERROR_MSG, customerRequest));
+            }
+            // Step 4 : Decrypt API Response
+            return EncryptionDecryptionUtil.decryptValue(encryptionKey, customerResponses.getFirst().getCustomerResponse());
+        } catch (EncryptionDecryptionException e) {
+            logger.error("Decryption Error in SBI EPay Customer creation, for request {} and error {}", customerResponses, e.getMessage());
+            throw new SBIEpayException(DECRYPTION_ERROR_CODE, MessageFormat.format(DECRYPTION_ERROR_MSG, customerResponses), e);
+        }
+    }
+
+}
