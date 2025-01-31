@@ -130,3 +130,131 @@ class CustomerClientTest {
         }
     }
 }
+------------------------------------------
+
+import com.sbi.epay.encryptdecrypt.exception.EncryptionDecryptionException;
+import com.sbi.epay.sdk.api.model.response.CustomerResponse;
+import com.sbi.epay.sdk.exceptions.SBIEpayException;
+import com.sbi.epay.sdk.utils.EncryptionDecryptionUtil;
+import org.json.JSONObject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class CustomerClientTest {
+
+    private static final String TEST_KEY = "testKey";
+    private static final String TEST_SECRET = "testSecret";
+    private static final String TEST_ENCRYPTION_KEY = "testEncryptionKey";
+    private static final String ENCRYPTED_VALUE = "encryptedValue";
+    private static final String DECRYPTED_VALUE = "decryptedValue";
+
+    private CustomerClient customerClient;
+
+    @BeforeEach
+    void setUp() {
+        customerClient = new CustomerClient(TEST_KEY, TEST_SECRET, TEST_ENCRYPTION_KEY);
+    }
+
+    @Test
+    void testCreateCustomer_Success() throws Exception {
+        JSONObject mockRequest = new JSONObject();
+        mockRequest.put("customerName", "John Doe");
+
+        try (MockedStatic<EncryptionDecryptionUtil> encryptionMock = mockStatic(EncryptionDecryptionUtil.class)) {
+            // Mock encryption & decryption
+            encryptionMock.when(() -> EncryptionDecryptionUtil.encryptValue(any(), any())).thenReturn(ENCRYPTED_VALUE);
+            encryptionMock.when(() -> EncryptionDecryptionUtil.decryptValue(any(), any())).thenReturn(DECRYPTED_VALUE);
+
+            // Call the actual method (not mocking private methods)
+            String response = customerClient.create(mockRequest);
+
+            // Verify encryption was called
+            encryptionMock.verify(() -> EncryptionDecryptionUtil.encryptValue(TEST_ENCRYPTION_KEY, mockRequest.toString()), times(1));
+
+            // Assert result
+            assertEquals(DECRYPTED_VALUE, response);
+        }
+    }
+
+    @Test
+    void testCreateCustomer_EncryptionFailure() {
+        JSONObject mockRequest = new JSONObject();
+        mockRequest.put("customerName", "John Doe");
+
+        try (MockedStatic<EncryptionDecryptionUtil> encryptionMock = mockStatic(EncryptionDecryptionUtil.class)) {
+            // Simulate Encryption Failure
+            encryptionMock.when(() -> EncryptionDecryptionUtil.encryptValue(any(), any()))
+                    .thenThrow(new EncryptionDecryptionException("Encryption failed"));
+
+            // Call and verify exception
+            SBIEpayException exception = assertThrows(SBIEpayException.class, () -> customerClient.create(mockRequest));
+            assertEquals("Encryption failed", exception.getCause().getMessage());
+
+            encryptionMock.verify(() -> EncryptionDecryptionUtil.encryptValue(TEST_ENCRYPTION_KEY, mockRequest.toString()), times(1));
+        }
+    }
+
+    @Test
+    void testCreateCustomer_DecryptionFailure() throws Exception {
+        JSONObject mockRequest = new JSONObject();
+        mockRequest.put("customerName", "John Doe");
+
+        try (MockedStatic<EncryptionDecryptionUtil> encryptionMock = mockStatic(EncryptionDecryptionUtil.class)) {
+            // Mock Encryption
+            encryptionMock.when(() -> EncryptionDecryptionUtil.encryptValue(any(), any())).thenReturn(ENCRYPTED_VALUE);
+
+            // Simulate Decryption Failure
+            encryptionMock.when(() -> EncryptionDecryptionUtil.decryptValue(any(), any()))
+                    .thenThrow(new EncryptionDecryptionException("Decryption failed"));
+
+            // Call and verify exception
+            SBIEpayException exception = assertThrows(SBIEpayException.class, () -> customerClient.create(mockRequest));
+            assertEquals("Decryption failed", exception.getCause().getMessage());
+        }
+    }
+
+    @Test
+    void testCreateCustomer_APIResponseEmpty() throws Exception {
+        JSONObject mockRequest = new JSONObject();
+        mockRequest.put("customerName", "John Doe");
+
+        try (MockedStatic<EncryptionDecryptionUtil> encryptionMock = mockStatic(EncryptionDecryptionUtil.class)) {
+            encryptionMock.when(() -> EncryptionDecryptionUtil.encryptValue(any(), any())).thenReturn(ENCRYPTED_VALUE);
+
+            // Call createCustomer method with a response that is empty
+            SBIEpayException exception = assertThrows(SBIEpayException.class, () -> customerClient.create(mockRequest));
+            assertTrue(exception.getMessage().contains("Customer creation failed"));
+        }
+    }
+
+    @Test
+    void testCreateCustomer_SuccessfullyDecryptsResponse() throws Exception {
+        JSONObject mockRequest = new JSONObject();
+        mockRequest.put("customerName", "John Doe");
+
+        try (MockedStatic<EncryptionDecryptionUtil> encryptionMock = mockStatic(EncryptionDecryptionUtil.class)) {
+            encryptionMock.when(() -> EncryptionDecryptionUtil.encryptValue(any(), any())).thenReturn(ENCRYPTED_VALUE);
+            encryptionMock.when(() -> EncryptionDecryptionUtil.decryptValue(any(), any())).thenReturn(DECRYPTED_VALUE);
+
+            String response = customerClient.create(mockRequest);
+
+            // Verify decryption was called
+            encryptionMock.verify(() -> EncryptionDecryptionUtil.decryptValue(TEST_ENCRYPTION_KEY, DECRYPTED_VALUE), times(1));
+
+            // Assert result
+            assertEquals(DECRYPTED_VALUE, response);
+        }
+    }
+}
