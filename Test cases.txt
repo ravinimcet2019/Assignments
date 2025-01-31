@@ -1,0 +1,132 @@
+import com.sbi.epay.encryptdecrypt.exception.EncryptionDecryptionException;
+import com.sbi.epay.sdk.api.model.response.CustomerResponse;
+import com.sbi.epay.sdk.exceptions.SBIEpayException;
+import com.sbi.epay.sdk.utils.EncryptionDecryptionUtil;
+import org.json.JSONObject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Mockito;
+
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class CustomerClientTest {
+
+    private static final String TEST_KEY = "testKey";
+    private static final String TEST_SECRET = "testSecret";
+    private static final String TEST_ENCRYPTION_KEY = "testEncryptionKey";
+    private static final String ENCRYPTED_VALUE = "encryptedValue";
+    private static final String DECRYPTED_VALUE = "decryptedValue";
+
+    private CustomerClient customerClient;
+
+    @BeforeEach
+    void setUp() {
+        customerClient = new CustomerClient(TEST_KEY, TEST_SECRET, TEST_ENCRYPTION_KEY);
+    }
+
+    @Test
+    void testCreateCustomer_Success() throws Exception {
+        JSONObject mockRequest = new JSONObject();
+        mockRequest.put("customerName", "John Doe");
+
+        try (MockedStatic<EncryptionDecryptionUtil> encryptionMock = mockStatic(EncryptionDecryptionUtil.class)) {
+            // Mock Encryption
+            encryptionMock.when(() -> EncryptionDecryptionUtil.encryptValue(any(), any())).thenReturn(ENCRYPTED_VALUE);
+            encryptionMock.when(() -> EncryptionDecryptionUtil.decryptValue(any(), any())).thenReturn(DECRYPTED_VALUE);
+
+            // Spy on CustomerClient and mock the private method
+            CustomerClient spyClient = spy(customerClient);
+            doReturn(DECRYPTED_VALUE).when(spyClient).createCustomer(ENCRYPTED_VALUE);
+
+            // Call the method
+            String response = spyClient.create(mockRequest);
+
+            // Verify encryption was called
+            encryptionMock.verify(() -> EncryptionDecryptionUtil.encryptValue(TEST_ENCRYPTION_KEY, mockRequest.toString()), times(1));
+
+            // Assert result
+            assertEquals(DECRYPTED_VALUE, response);
+        }
+    }
+
+    @Test
+    void testCreateCustomer_EncryptionFailure() {
+        JSONObject mockRequest = new JSONObject();
+        mockRequest.put("customerName", "John Doe");
+
+        try (MockedStatic<EncryptionDecryptionUtil> encryptionMock = mockStatic(EncryptionDecryptionUtil.class)) {
+            // Simulate Encryption Failure
+            encryptionMock.when(() -> EncryptionDecryptionUtil.encryptValue(any(), any()))
+                    .thenThrow(new EncryptionDecryptionException("Encryption failed"));
+
+            // Call and verify exception
+            SBIEpayException exception = assertThrows(SBIEpayException.class, () -> customerClient.create(mockRequest));
+            assertEquals("Encryption failed", exception.getCause().getMessage());
+
+            encryptionMock.verify(() -> EncryptionDecryptionUtil.encryptValue(TEST_ENCRYPTION_KEY, mockRequest.toString()), times(1));
+        }
+    }
+
+    @Test
+    void testCreateCustomer_DecryptionFailure() throws Exception {
+        try (MockedStatic<EncryptionDecryptionUtil> encryptionMock = mockStatic(EncryptionDecryptionUtil.class)) {
+            // Mock Encryption & Decryption
+            encryptionMock.when(() -> EncryptionDecryptionUtil.encryptValue(any(), any())).thenReturn(ENCRYPTED_VALUE);
+            encryptionMock.when(() -> EncryptionDecryptionUtil.decryptValue(any(), any()))
+                    .thenThrow(new EncryptionDecryptionException("Decryption failed"));
+
+            // Spy and mock the private method
+            CustomerClient spyClient = spy(customerClient);
+            doReturn("invalidEncryptedResponse").when(spyClient).createCustomer(ENCRYPTED_VALUE);
+
+            // Call and verify exception
+            SBIEpayException exception = assertThrows(SBIEpayException.class, () -> spyClient.create(new JSONObject()));
+            assertEquals("Decryption failed", exception.getCause().getMessage());
+        }
+    }
+
+    @Test
+    void testCreateCustomer_APIResponseEmpty() {
+        try (MockedStatic<EncryptionDecryptionUtil> encryptionMock = mockStatic(EncryptionDecryptionUtil.class)) {
+            encryptionMock.when(() -> EncryptionDecryptionUtil.encryptValue(any(), any())).thenReturn(ENCRYPTED_VALUE);
+
+            // Spy and mock the private method to return an empty list
+            CustomerClient spyClient = spy(customerClient);
+            doReturn("").when(spyClient).createCustomer(ENCRYPTED_VALUE);
+
+            // Call and verify exception
+            SBIEpayException exception = assertThrows(SBIEpayException.class, () -> spyClient.create(new JSONObject()));
+            assertTrue(exception.getMessage().contains("Customer creation failed"));
+        }
+    }
+
+    @Test
+    void testCreateCustomer_SuccessfullyDecryptsResponse() throws Exception {
+        try (MockedStatic<EncryptionDecryptionUtil> encryptionMock = mockStatic(EncryptionDecryptionUtil.class)) {
+            encryptionMock.when(() -> EncryptionDecryptionUtil.encryptValue(any(), any())).thenReturn(ENCRYPTED_VALUE);
+            encryptionMock.when(() -> EncryptionDecryptionUtil.decryptValue(any(), any())).thenReturn(DECRYPTED_VALUE);
+
+            // Spy and mock the private method
+            CustomerClient spyClient = spy(customerClient);
+            doReturn(DECRYPTED_VALUE).when(spyClient).createCustomer(ENCRYPTED_VALUE);
+
+            String response = spyClient.create(new JSONObject());
+
+            // Verify decryption was called
+            encryptionMock.verify(() -> EncryptionDecryptionUtil.decryptValue(TEST_ENCRYPTION_KEY, DECRYPTED_VALUE), times(1));
+
+            // Assert result
+            assertEquals(DECRYPTED_VALUE, response);
+        }
+    }
+}
