@@ -1,0 +1,21 @@
+@Query(value = "SELECT " +
+               "COUNT(*) AS totalTransactionCount, " +
+               "SUM(ORDER_AMOUNT) AS totalOrderAmount, " +
+               "SUM(REFUND_AMOUNT) AS totalRefundAmount, " +
+               "SUM(TAX_AMOUNT) AS totalTaxAmount, " +
+               "SUM(NET_SETTLEMENT_AMOUNT) AS totalNetSettlementAmount, " +
+               "SUM(SETTLED_AMOUNT) AS totalSettledAmount, " +
+               "SUM(PENDING_SETTLEMENT_AMOUNT) AS totalPendingSettlementAmount, " +
+               "TRANSACTION_DATE AS transactionDate " +
+               "FROM VIEW_TRANSACTION_DAILY_REPORT " +
+               "WHERE MID = :mId " +
+               "AND TRANSACTION_DATE BETWEEN :fromDate AND :toDate " +
+               "GROUP BY TRANSACTION_DATE " +
+               "ORDER BY TRANSACTION_DATE DESC " +
+               "LIMIT :limit OFFSET :offset", 
+       nativeQuery = true)
+List<Object[]> findRecentTransactionReport(@Param("mId") String mId,
+                                           @Param("fromDate") Date fromDate,
+                                           @Param("toDate") Date toDate,
+                                           @Param("limit") int limit,
+                                           @Param("offset") int offset);
