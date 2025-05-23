@@ -19,3 +19,38 @@ List<Object[]> findRecentTransactionReport(@Param("mId") String mId,
                                            @Param("toDate") Date toDate,
                                            @Param("limit") int limit,
                                            @Param("offset") int offset);
+
+
+    public static String maskMobileNumber(String mobileNumber) {
+        if (StringUtils.isEmpty(mobileNumber) || mobileNumber.length() < MOBILE_PHONE_VISIBLE_DIGITS) {
+            throw new MerchantException(ErrorConstants.INVALID_ERROR_CODE, MessageFormat.format(ErrorConstants.INVALID_ERROR_MESSAGE, MOBILE_PHONE, MOBILE_PHONE_FORMAT));
+        }
+
+        return MOBILE_PHONE_CHARACTER.repeat(mobileNumber.length() - MOBILE_PHONE_VISIBLE_DIGITS) + mobileNumber.substring(mobileNumber.length() - MOBILE_PHONE_VISIBLE_DIGITS);
+    }
+
+    /**
+     * Masks an email address, hiding part of the local part.
+     *
+     * @param email The email address to be masked.
+     * @return The masked email address.
+     */
+    public static String maskEmail(String email) {
+        if (StringUtils.isEmpty(email) || !email.contains("@")) {
+            throw new MerchantException(ErrorConstants.INVALID_ERROR_CODE, MessageFormat.format(ErrorConstants.INVALID_ERROR_MESSAGE, EMAIL, EMAIL_FORMAT));
+        }
+
+        String[] parts = email.split("@");
+        String localPart = parts[0];
+        String domainPart = parts[1];
+
+        // Mask local part: Keep first and last 2 character visible
+        String maskedLocalPart = localPart.charAt(0) + EMAIL_CHARACTER.repeat(localPart.length() - EMAIL_VISIBLE_DIGITS) + localPart.substring(localPart.length() - EMAIL_VISIBLE_DIGITS);
+
+        // Mask domain part: Keep last 2 characters visible
+        String maskedDomainPart = domainPart.length() > EMAIL_VISIBLE_DIGITS
+                ? EMAIL_CHARACTER.repeat(localPart.length() - EMAIL_VISIBLE_DIGITS) + domainPart.substring(domainPart.length() - EMAIL_VISIBLE_DIGITS)
+                : domainPart;
+
+        return maskedLocalPart + "@" + maskedDomainPart;
+    }
