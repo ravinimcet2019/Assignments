@@ -947,3 +947,52 @@ VALUES (SYS_GUID(), 'MID004', 'ENTITY004', 'Admin', 1672501234, 'Admin', 1672501
        "JOIN MerchantEntityUser me ON meg.entityId = me.entityId " +
        "WHERE me.userId = :userId AND me.entityId IS NOT NULL")
 List<String> getMidsBasedOnEntityId(@Param("userId") UUID userId);
+------------------------------------
+
+public class EmailMasker {
+    public static String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return email; // Return as is if email is invalid
+        }
+
+        String[] parts = email.split("@", 2);
+        String local = parts[0];
+        String domain = parts[1];
+
+        // Mask local part
+        String maskedLocal;
+        int localLength = local.length();
+        if (localLength <= 2) {
+            maskedLocal = local.charAt(0) + "*";
+        } else if (localLength <= 4) {
+            maskedLocal = local.charAt(0) + "*".repeat(localLength - 2) + local.charAt(localLength - 1);
+        } else {
+            maskedLocal = local.substring(0, 2) + "*".repeat(localLength - 4) + local.substring(localLength - 2);
+        }
+
+        // Mask domain part
+        String maskedDomain;
+        int domainLength = domain.length();
+        if (domainLength <= 2) {
+            maskedDomain = "*".repeat(domainLength);
+        } else {
+            maskedDomain = "*".repeat(domainLength - 2) + domain.substring(domainLength - 2);
+        }
+
+        return maskedLocal + "@" + maskedDomain;
+    }
+
+    public static void main(String[] args) {
+        String[] emails = {
+            "d@gmail.com",
+            "ab@gmail.com",
+            "abc@gmail.com",
+            "abcd@gmail.com",
+            "exampleemail@gmail.com"
+        };
+
+        for (String email : emails) {
+            System.out.println(maskEmail(email));
+        }
+    }
+}
