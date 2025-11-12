@@ -1,928 +1,176 @@
-oo lUser Story: Fetch MID Mapping List
-Description
-For a merchant's MID management, provide an API to fetch the list of assigned and unassigned MIDs for a given user. This will help in identifying which MIDs are already associated with a user and which are available for assignment.
+CSRFGuard Vulnerability Fix – Demo Document
 
-API Details
-Method: POST
-API Definition: /v1/mid/mapping/list
-Access Type: Secured API
-Request Body
-json
-Copy code
-{
-  "userId": "string",
-  "midList": ["string"]
+1. Issue Overview
+
+Component: OWASP CSRFGuard 4.5.0
+
+Vulnerability: Token leakage due to insecure URL validation in csrfguard.js.
+
+Type: Cross-Site Request Forgery (CSRF)
+
+Severity: Medium
+
+Reason: The isValidUrl() method uses weak string matching, allowing tokens to be leaked to external domains.
+
+Status: No patched/non-vulnerable version available.
+
+
+
+---
+
+2. Possible Resolution Approaches
+
+🧩 Option A – Upgrade (Not Available)
+
+Description: Try to update to a secure version of CSRFGuard.
+
+Limitation: No newer or fixed version exists. Hence, this approach cannot resolve the vulnerability.
+
+
+
+---
+
+🧩 Option B – Implement Custom Mitigation
+
+Description: Patch or rewrite the vulnerable csrfguard.js function (isValidUrl).
+
+Drawbacks:
+
+High maintenance effort.
+
+May break on future updates.
+
+Security responsibility shifts to development team.
+
+
+Use Case: Temporary workaround only.
+
+
+
+---
+
+✅ Option C – Migrate to Spring Security CSRF Protection
+
+Description: Replace OWASP CSRFGuard with Spring Security’s built-in CSRF protection.
+
+Advantages:
+
+Fully maintained and updated by the Spring team.
+
+Integrates natively with Spring MVC.
+
+No external scripts or manual token handling.
+
+Automatically applies to all non-idempotent (POST, PUT, DELETE) requests.
+
+
+
+
+---
+
+3. Why Choose Spring Security
+
+Criteria	CSRFGuard	Spring Security
+
+Maintenance	Outdated, vulnerable	Actively maintained
+Integration	Manual setup (JSP & Filter)	Built-in with Spring MVC
+Token Handling	Requires JS + taglibs	Auto-handled by framework
+Security Updates	Rare	Regular, versioned releases
+Long-term support	❌	✅
+
+
+
+---
+
+4. Migration Steps to Spring Security
+
+Step 1: Remove CSRFGuard Dependencies
+
+<!-- Remove these from pom.xml -->
+<dependency>
+  <groupId>org.owasp</groupId>
+  <artifactId>csrfguard</artifactId>
+  <version>4.5.0</version>
+</dependency>
+
+Step 2: Add Spring Security Dependencies
+
+<dependency>
+  <groupId>org.springframework.security</groupId>
+  <artifactId>spring-security-web</artifactId>
+  <version>5.8.6</version>
+</dependency>
+<dependency>
+  <groupId>org.springframework.security</groupId>
+  <artifactId>spring-security-config</artifactId>
+  <version>5.8.6</version>
+</dependency>
+
+(Adjust version if your Nexus restricts access.)
+
+
+---
+
+Step 3: Enable CSRF in Security Config
+
+If using Java config:
+
+@Override
+protected void configure(HttpSecurity http) throws Exception {
+    http
+        .csrf().enable()  // enabled by default
+        .authorizeRequests()
+        .anyRequest().authenticated();
 }
-userId: The unique identifier of the parent user. It must be validated to ensure the parent user exists in the system.
-midList: List of MIDs to check their assigned or unassigned status.
-Both fields are mandatory.
 
-Success Response Body
-json
-Copy code
-{
-  "data": {
-    "assignedMids": [
-      {
-        "mid": "string",
-        "name": "string"
-      }
-    ],
-    "unassignedMids": [
-      {
-        "mid": "string",
-        "name": "string"
-      }
-    ]
-  },
-  "status": 1
-}
-assignedMids: List of MIDs with their names that are already assigned to the userId.
-unassignedMids: List of MIDs with their names that are not assigned to the userId.
-Failure Response Body
-json
-Copy code
-{
-  "status": 0,
-  "error": [
-    {
-      "errorCode": "string",
-      "errorMessage": "string"
-    }
-  ]
-}
-errorCode: Specific error code for debugging.
-errorMessage: Description of the error encountered.
-Testing Checklist
-Positive Scenarios:
 
-Test with valid userId and midList containing valid MIDs.
-Validate the response contains both assignedMids and unassignedMids.
-Negative Scenarios:
+---
 
-Test with invalid userId (not present in the system).
-Test with midList containing invalid MIDs.
-Test with empty or null userId.
-Test with empty or null midList.
-Developer Checklist
-Class Flow: Ensure a proper flow diagram is uploaded.
-Unit Test Coverage: Achieve at least 90% test coverage.
-Development Steps
-Step 1: Create Validation and Mapping Controller
+Step 4: Update JSP Forms
 
-Develop a REST Controller to expose the /v1/mid/mapping/list endpoint.
-Step 2: Implement MID Mapping Service
+Replace:
 
-Validate the userId and ensure it exists in the database.
-Check the midList against the database and segregate them into assignedMids and unassignedMids.
-Step 3: Create DAO and Repository
+<%@ taglib uri="https://owasp.org/www-project-csrfguard/Owasp.CsrfGuard.tld" prefix="csrf" %>
+<input type="hidden" name="<csrf:tokenname/>" value="<csrf:tokenvalue uri="/save.do"/>"/>
 
-User DAO: Implement existsUserId(String userId) to validate if the parent user exists.
-MID Repository: Create queries to:
-Fetch assigned MIDs: findAssignedMids(String userId, List<String> midList).
-Fetch unassigned MIDs: findUnassignedMids(List<String> midList).
-Step 4: Return Response
+With:
 
-Construct the MerchantResponse with assignedMids and unassignedMids.
-Summary of Key Components
-Controller:
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
+<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
 
-Exposes the /v1/mid/mapping/list endpoint.
-Service:
+If using <form:form> tags, Spring Security automatically includes CSRF tokens.
 
-Handles business logic for validating userId and segregating midList.
-Repository:
 
-Interacts with the database to fetch assigned and unassigned MIDs.
-Acceptance Criteria
-The service should respond quickly, even for large midList inputs.
-All requests and responses must be logged for traceability.
-Validation errors should return meaningful error messages and codes.
-Let me know if you need additional details or adjustments!
+---
 
+Step 5: Remove CSRFGuard Filter from web.xml
 
+<!-- Remove this -->
+<filter>
+    <filter-name>CSRFGuard</filter-name>
+    <filter-class>org.owasp.csrfguard.CsrfGuardFilter</filter-class>
+</filter>
+<filter-mapping>
+    <filter-name>CSRFGuard</filter-name>
+    <url-pattern>/*</url-pattern>
+</filter-mapping>
 
-Service Layer Implementation
-Validate the userId:
+Spring Security will now handle token generation and validation.
 
-Ensure that the userId is valid and exists in the system.
-Check for Parent ID:
 
-Query the database to determine if a parentId exists for the given userId.
-If parentId Does Not Exist:
+---
 
-Treat all MIDs in the system as assignedMIDs.
-If parentId Exists:
+5. Outcome
 
-Retrieve the MIDs associated with the parentId.
-Identify which MIDs are already assigned and which are unassigned.
+✅ Vulnerable OWASP CSRFGuard removed
+✅ Framework-based CSRF protection enabled
+✅ No manual JS token management
+✅ Application aligned with modern Spring security standards
 
 
-Return Assigned and Unassigned MIDs:
+---
 
-Provide the assigned MIDs as assignedMids and the remaining MIDs as unassignedMids
--------------------------------------------------------------------------------------
+6. Conclusion
 
-2025-01-02 17:00:42.737 WARN | com.epay.merchant.exceptionhandlers.MerchantExceptionHandler:97 | principal=  | scenario=/v1/merchant/login | operation=POST | correlation=aad461c9-788e-431c-b117-639cfe142c0e | handleDBException | Resolved [org.springframework.dao.InvalidDataAccessResourceUsageException: could not extract ResultSet [ORA-02289: sequence does not exist<EOL><EOL><EOL>https://docs.oracle.com/error-help/db/ora-02289/] [select revinfo_seq.nextval from dual]; SQL [select revinfo_seq.nextval from dual]]
-
-
-
--- Create the REVINFO table
-CREATE TABLE REVINFO (
-    REV INT NOT NULL PRIMARY KEY, -- Revision ID
-    REVTSTMP TIMESTAMP NOT NULL   -- Revision timestamp
-);
-
--- Create the sequence for revision numbers
-CREATE SEQUENCE revinfo_seq START WITH 1 INCREMENT BY 1;
---------------------------------------------------------------------------------------------
-
-Caused by: jakarta.persistence.PersistenceException: [PersistenceUnit: default] Unable to build Hibernate SessionFactory; nested exception is org.hibernate.MappingException: Could not instantiate id generator [entity-name=org.hibernate.envers.DefaultRevisionEntity]
-
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-Caused by: org.hibernate.MappingException: 
-The increment size of the [revinfo_SEQ] sequence is set to [50] in the entity mapping while the associated database sequence increment size is [1].
-
-2025-01-03 18:48:31.570 WARN | com.epay.merchant.exceptionhandlers.MerchantExceptionHandler:97 | principal=  | scenario=/merchant/v1/otp/validation | operation=POST | correlation=ac2ca0e3-3cb4-406e-89be-491892dee459 | handleDBException | Resolved [org.springframework.dao.InvalidDataAccessResourceUsageException: could not execute statement [ORA-00942: table or view does not exist<EOL><EOL><EOL>https://docs.oracle.com/error-help/db/ora-00942/] [insert into revinfo (revtstmp,rev) values (?,?)]; SQL [insert into revinfo (revtstmp,rev) values (?,?)]]
-
-----------------------------------------------------
-
-2025-01-03 18:55:15.271 WARN | com.epay.merchant.exceptionhandlers.MerchantExceptionHandler:97 | principal=  | scenario=/merchant/v1/otp/validation | operation=POST | correlation=ba28a3d9-7332-4c5c-add9-7ac9a25ff8d1 | handleDBException | Resolved [org.springframework.dao.InvalidDataAccessResourceUsageException: could not execute statement [ORA-00932: inconsistent datatypes: expected TIMESTAMP got NUMBER<EOL><EOL><EOL>https://docs.oracle.com/error-help/db/ora-00932/] [insert into revinfo (revtstmp,rev) values (?,?)]; SQL [insert into revinfo (revtstmp,rev) values (?,?)]]
-
-
-@Entity
-@RevisionEntity
-public class CustomRevisionEntity extends DefaultRevisionEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "revinfo_seq_gen")
-    @SequenceGenerator(name = "revinfo_seq_gen", sequenceName = "revinfo_seq", allocationSize = 1)
-    private int rev;
-
-    @Column(name = "REVTSTMP", nullable = false)
-    private Timestamp revtstmp;
-
-    // Additional fields if needed
-}
----------------------------------------------------------
-
-Caused by: org.hibernate.MappingException: Foreign key (FKiai5w7mgj23u1fx331jjlq7y3:merchant_user_audit [rev])) must have same number of columns as the referenced primary key (custom_revision_entity [id,rev])
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-package com.sbi.payagg.util;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.Authenticator;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import javax.net.ssl.HttpsURLConnection;
-
-import com.sbi.payagg.util.GenericExceptionLog;
-
-import sun.misc.BASE64Encoder;
-
-
-
-/**********************************************************************************
- * Class Name: AggSbiSmsGateway Class Description: This class is used to POST
- * SMS to the Gateway. Created Date: Monday, May 12, 2014
- * 
- * @version: 1.0
- ***********************************************************************************/
-
-public class AggSbiSmsGateway {
-
-	
-	private static final String COMPONENTNAME = "AggSbiSmsGateway";
-
-	//old method
-	public boolean sendSms(ArrayList gtwyMapComponentData, String mobileNumber, String textMessage) {
-		//GenericExceptionLog.log("sendSms()", "AggSbiSmsGateway");
-		String responseMsg = "", dataStr = "", smsUrl = "", dcode = "", subuid = "", pwd = "", sender = "", txtMessage = "";// pno="",
-																															// msgtxt="",
-																															// msgtype="",
-																															// intflag="";
-		boolean status = false;
-		try {
-
-			//GenericExceptionLog.log("sendSms(): gtwyMapComponentData: " + gtwyMapComponentData.toString(), "AggSbiSmsGateway");
-			smsUrl = gtwyMapComponentData.get(10).toString();
-			dcode = gtwyMapComponentData.get(7).toString();
-			subuid = gtwyMapComponentData.get(5).toString();
-			pwd = gtwyMapComponentData.get(6).toString();
-			sender = gtwyMapComponentData.get(9).toString();
-			//GenericExceptionLog.log("sendSms(): smsUrl " + smsUrl, "AggSbiSmsGateway");
-
-			// txtMessage = textMessage.replaceAll("\\s", "+");
-			txtMessage = URLEncoder.encode(textMessage, "UTF-8");
-
-			//GenericExceptionLog.log("txtMessage(): txtMessage " + txtMessage, "AggSbiSmsGateway");
-
-			dataStr += "dcode=" + dcode;
-			dataStr += "&";
-			dataStr += "subuid=" + subuid;
-			dataStr += "&";
-			dataStr += "pwd=" + pwd;
-			dataStr += "&";
-			dataStr += "sender=" + sender;
-			dataStr += "&";
-			dataStr += "pno=" + mobileNumber;
-			dataStr += "&";
-			dataStr += "msgtxt=" + txtMessage;
-			dataStr += "&";
-			dataStr += "msgtype=S";
-			dataStr += "&";
-			dataStr += "intflag=1";
-			//GenericExceptionLog.log("sendSms(): dataStr " + dataStr, "AggSbiSmsGateway");
-
-			// responseMsg =
-			// AggGatewayURLConnection.smsUrlConnection(smsUrl,dataStr);
-
-			String smsRequestURL = smsUrl.concat("?").concat(dataStr);
-			URL myUrl = new URL(smsRequestURL);
-			//GenericExceptionLog.log("Before url connection", "AggSbiSmsGateway");
-
-			URLConnection uc = myUrl.openConnection();
-		      
-
-			//GenericExceptionLog.log("After url connection", "AggSbiSmsGateway");
-
-			// uc.getContent();
-
-			//GenericExceptionLog.log("After uc getContent()", "AggSbiSmsGateway");
-
-			String inputLine = "", responseCode = "";
-			InputStreamReader isr = new InputStreamReader(uc.getInputStream());
-			//GenericExceptionLog.log("isr" + isr, "AggSbiSmsGateway");
-			BufferedReader in = new BufferedReader(isr);
-			while ((inputLine = in.readLine()) != null) {
-				responseCode += inputLine;
-			}
-			in.close();
-			isr.close();
-			//GenericExceptionLog.log("After  URLConnection: responseCode-->" + responseCode, "AggSbiSmsGateway");
-
-			if (responseCode != "" && !responseCode.equals("") && responseCode.startsWith("APP-AGGR")) {
-				status = true;
-			}
-			//GenericExceptionLog.log("After  URLConnection: status-->" + status, "AggSbiSmsGateway");
-
-		} catch (Exception e) {
-			GenericExceptionLog.exceptionJava(e, "AggSbiSmsGateway.java :Error in Response Message for :"+txtMessage, "AggSbiSmsGateway");
-
-		}
-		return status;
-	}
-//new method by punam on 6 feb 2020
-	public boolean sendSmsUpdated(ArrayList gtwyMapComponentData,String mobileNumber,String textMessage,String contentType)
-	{
-		
-		GenericExceptionLog.log("in sendSmsUpdated "+gtwyMapComponentData+"mobileNumber "+mobileNumber+"textMessage "+textMessage+gtwyMapComponentData.get(0),"AggSbiSmsGateway");
-
-		
-         String  dataStr="", smsUrl="",  pwd="", txtMessage="",uname="";
-         
-         
-         String sender_id="",intflag="0",county_code="",charging="";
-         
-         int counter=0;//added for sms retry
-          
-		   boolean status=false;
-			try{
-				
-
-				           smsUrl      = gtwyMapComponentData.get(10).toString();
-				           pwd      = gtwyMapComponentData.get(6).toString();
-				           uname=gtwyMapComponentData.get(5).toString();
-				           county_code=gtwyMapComponentData.get(1).toString();
-				           
-				          
-				           if(county_code.equalsIgnoreCase("DOM"))
-				        		   {
-				           intflag="0";
-				           charging="0";
-				        		   }else
-				        		   {
-				        			   intflag="1";	  
-				        			   charging="1";
-				        		   }
-				           
-				           sender_id=gtwyMapComponentData.get(9).toString(); //sender name sbiepay
-				           
-				           
-				           //content_type=text&sender_id=SBePay&mobile=9890372282&message=Hi Poonam this is test SMS from SBIePay&intflag=0&charging=0
-				           GenericExceptionLog.log("smsUrl==="+smsUrl+"pwd==="+pwd+"sender_id==="+sender_id+"contentType==="+contentType+"intflag==="+intflag+"charging==="+charging+"mobile===","AggSbiSmsGateway");
-				           
-				        
-				           
-				            txtMessage = URLEncoder.encode(textMessage, "UTF-8");
-				          
-				          //  GenericExceptionLog.log("txtMessage(): txtMessage "+txtMessage, "AggSbiSmsGateway");
-				           
-				            // new dataStr
-				            dataStr += "content_type=" +contentType ;
-							dataStr += "&";
-							dataStr += "sender_id=" +sender_id;
-							dataStr += "&";
-							dataStr += "mobile=" +mobileNumber ;
-							dataStr += "&";
-							dataStr += "message=" +txtMessage ;
-							dataStr += "&";
-							dataStr += "intflag=" +intflag ;
-							dataStr += "&";
-							dataStr += "charging="+charging;
-							
-						 GenericExceptionLog.log("sendSms(): dataStr Request sending..... "+dataStr, COMPONENTNAME); 
-						 
-						
-                	       AggSbiSmsGateway smsObj = new AggSbiSmsGateway();
-                	      
-
-				           int responseCode=smsObj.smsAuthConnectMethod(uname,pwd,dataStr,smsUrl,counter);		          
-                	       
-                	     
-
-				           if(responseCode==200){
-				        	   status = true; 
-				           }
-				    
-				           GenericExceptionLog.log("After  URLConnection: responseCode-->"+responseCode +"status "+status, COMPONENTNAME);
-							     
-					   
-					    }catch(NullPointerException e){
-					        GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java NullPointerException :Error in Response Message", COMPONENTNAME);	
-
-			}
-			catch(Exception e){
-					        GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java :Error in Response Message", COMPONENTNAME);	
-
-			}
-		    return status;  
-		
-	}
-	
-	/* private int smsAuthConnectMethod(String uname,String password,String dataString,String smsUrl)
-	  {
-		  int returnCode =0;
-	    try
-	    {
-	    
-	    	
-
-	      URL myUrl = new URL(smsUrl);
-	      HttpsURLConnection conn = null;
-	    
-	       
-	        conn = (HttpsURLConnection)myUrl.openConnection();
-	      
-	      conn.setRequestMethod("POST");
-	      String authstr = prepAuthStr(uname, password);
-	      GenericExceptionLog.log("HTTP-AUTH:  Authorization: ","AggSbiSmsGateway");
-	      conn.setRequestProperty("Authorization", authstr);
-	      conn.setDoOutput(true);
-	      GenericExceptionLog.log("HTTP-WOUT:  dataString: " + dataString,"AggSbiSmsGateway");
-	      OutputStream out = conn.getOutputStream();
-	      out.write(dataString.getBytes());
-	      out.close();
-	      GenericExceptionLog.log("HTTPS-REQ:  Connect... Done","AggSbiSmsGateway");
-	      returnCode = conn.getResponseCode();
-	      GenericExceptionLog.log("HTTP-RESP:  RCode: " + returnCode,"AggSbiSmsGateway");
-	      InputStream is = conn.getInputStream();
-	      InputStreamReader isr = new InputStreamReader(is);
-	      BufferedReader br = new BufferedReader(isr);
-
-	      StringBuilder sbResp = new StringBuilder();
-	      String inputLine;
-	      while ((inputLine = br.readLine()) != null)
-	      {
-	        sbResp.append(inputLine);
-	      }
-
-	      GenericExceptionLog.log("HTTPS-RESP:  Read " + sbResp.toString(),"AggSbiSmsGateway" );
-	      br.close();
-	    } catch (MalformedURLException e) {
-	    	
-	        GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java :Error in Response Message", "AggSbiSmsGateway");	
-
-	    } catch (IOException e) {
-	        GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java :Error in Response Message", "AggSbiSmsGateway");	
-	    } catch (Exception e) {
-	        GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java :Error in Response Message", "AggSbiSmsGateway");	
-	    }
-	    return returnCode;
-	  }*/
-	
-	
-	//added on 17Mar21
-	private int smsAuthConnectMethod(String uname, String password,String dataString, String smsUrl,int counter) {
-		int returnCode = 0;
-		String authstr = "";
-		
-		if(counter<3)
-		{	
-			counter++;
-			GenericExceptionLog.log("Counter inside smsAuthConnectMethodRetry method"+counter,COMPONENTNAME);
-			
-		try {
-					URL myUrl = new URL(smsUrl);
-					HttpsURLConnection conn = null;
-					
-					GenericExceptionLog.log("HTTP-URL:  Connecting : smsAuthConnectMethod method"+smsUrl,COMPONENTNAME);
-					/*System.setProperty("https.proxySet", "true");
-					System.setProperty("https.proxyHost",FetchProperties.getServerProperty("PROXY_IP"));
-					System.setProperty("https.proxyPort",FetchProperties.getServerProperty("PROXY_PORT"));*/
-					java.util.Properties systemSettings = System.getProperties(); 
-					
-					
-					systemSettings.put("https.proxySet","false");
-					systemSettings.remove("https.proxyHost");
-					systemSettings.remove("https.proxyPort");
-					Authenticator.setDefault(null);
-					
-					
-					
-					conn = (HttpsURLConnection) myUrl.openConnection();
-					GenericExceptionLog.log("conn"+conn,COMPONENTNAME);
-					conn.setRequestMethod("POST");
-					
-					authstr = prepAuthStr(uname, password);
-					GenericExceptionLog.log("HTTP-AUTH:  Authorization:: smsAuthConnectMethod method"+smsUrl,COMPONENTNAME);
-					//added for header value display we need to remove on production
-					
-//					Map<String, List<String>> map = conn.getHeaderFields();
-//					for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-//					    GenericExceptionLog.log(" header value Key "+entry.getKey()+",header Value :"+entry.getValue(),COMPONENTNAME);
-//					}
-					
-					conn.setRequestProperty("Authorization", authstr);
-					conn.setDoOutput(true);
-					conn.setConnectTimeout(30000);
-					conn.setReadTimeout(30000);
-					conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-					GenericExceptionLog.log("HTTP-WOUT:  dataString:: smsAuthConnectMethod method"+dataString,COMPONENTNAME);
-					
-					
-					OutputStream out = conn.getOutputStream();
-					out.write(dataString.getBytes());
-					out.close();
-					GenericExceptionLog.log("HTTPS-REQ:  Connect... Done smsAuthConnectMethod",COMPONENTNAME);
-				
-					returnCode = conn.getResponseCode();
-					GenericExceptionLog.log("HTTP-RESP:  RCode:: smsAuthConnectMethod method"+returnCode,COMPONENTNAME);
-					
-					
-					if(returnCode==200)
-					{
-						InputStream is = conn.getInputStream();
-						InputStreamReader isr = new InputStreamReader(is);
-						BufferedReader br = new BufferedReader(isr);
-			
-						StringBuilder sbResp = new StringBuilder();
-						String inputLine;
-						while ((inputLine = br.readLine()) != null) {
-							sbResp.append(inputLine);
-						}
-						  
-						GenericExceptionLog.log("HTTPS-RESP:  Read : smsAuthConnectMethod " + sbResp.toString(),COMPONENTNAME );
-						
-						br.close();
-						is.close();
-						isr.close();
-					
-						}
-						else
-						{
-							GenericExceptionLog.log("Inside else "  ,COMPONENTNAME );
-						}
-				}  catch (Exception e) {
-				
-					 GenericExceptionLog.exceptionJava(e,"AggSbiSmsGateway.java: smsAuthConnectMethod  :Error in Response Message", COMPONENTNAME);	
-					 
-					 if(returnCode!=200)
-					 {
-					 returnCode= smsAuthConnectMethodRetry(uname, password, dataString, smsUrl,counter);	
-					 
-					 GenericExceptionLog.log("returnCode : smsAuthConnectMethodRetry "+returnCode);
-					
-					 }
-				 
-			}
-		
-		}
-		else
-		{
-			GenericExceptionLog.log("dvUrlConn :: Inside count else Block", COMPONENTNAME);
-		}
-		
-		
-		return returnCode;
-	}
-
-	
-	
-	
-	
-	private int smsAuthConnectMethodRetry(String uname, String password,String dataString, String smsUrl,int counter) {
-			int returnCode = 0;
-			String authstr = "";
-			
-			GenericExceptionLog.log("Inside smsAuthConnectMethodRetry method",COMPONENTNAME);
-		
-			
-			if(counter<3)
-			{
-				counter++;
-				GenericExceptionLog.log("Counter inside smsAuthConnectMethodRetry method"+counter,COMPONENTNAME);
-				
-			
-			try {
-				URL myUrl = new URL(smsUrl);
-				HttpsURLConnection conn = null;
-				
-				GenericExceptionLog.log("HTTP-URL:  Connecting : smsAuthConnectMethodRetry method"+smsUrl,COMPONENTNAME);
-				
-				conn = (HttpsURLConnection) myUrl.openConnection();
-				conn.setRequestMethod("POST");
-				authstr = prepAuthStr(uname, password);
-				GenericExceptionLog.log("HTTP-AUTH:  Authorization::  Connecting : smsAuthConnectMethodRetry method"+smsUrl,COMPONENTNAME);
-				
-				conn.setRequestProperty("Authorization", authstr);
-				conn.setDoOutput(true);			
-				
-				GenericExceptionLog.log("HTTP-WOUT:  dataString : smsAuthConnectMethodRetry method"+dataString,COMPONENTNAME);	
-				
-				//added for header value display we need to remove on production
-				
-				Map<String, List<String>> map = conn.getHeaderFields();
-				for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-				    GenericExceptionLog.log(" retry header value Key "+entry.getKey()+", retry header Value :"+entry.getValue(),COMPONENTNAME);
-				}
-				OutputStream out = conn.getOutputStream();
-				out.write(dataString.getBytes());
-				out.close();				
-				GenericExceptionLog.log("HTTPS-REQ:  Connect... Done : smsAuthConnectMethodRetry method"+dataString,COMPONENTNAME);				
-				returnCode = conn.getResponseCode();
-				GenericExceptionLog.log("HTTP-RESP:  RCode : smsAuthConnectMethodRetry method"+returnCode,COMPONENTNAME);
-				
-				if(returnCode==200)
-				{
-				
-				InputStream is = conn.getInputStream();
-				InputStreamReader isr = new InputStreamReader(is);
-				BufferedReader br = new BufferedReader(isr);
-
-				StringBuilder sbResp = new StringBuilder();
-				String inputLine;
-				while ((inputLine = br.readLine()) != null) {
-					sbResp.append(inputLine);
-				}
-
-				GenericExceptionLog.log("HTTPS-RESP:  Read : smsAuthConnectMethodRetry "+ sbResp.toString(),COMPONENTNAME);
-				
-				br.close();
-				is.close();
-				isr.close();
-				}
-				else
-				{
-					GenericExceptionLog.log("Inside Else return Code !=200 : smsAuthConnectMethodRetry ",COMPONENTNAME);
-				}
-			   }  
-				catch (Exception e) {
-				 GenericExceptionLog.log("AggSbiSmsGateway.java: smsAuthConnectMethodRetry  :Error in Response Message", COMPONENTNAME);	
-				 
-				 if(returnCode!=200)
-				 {
-				 returnCode= smsAuthConnectMethod(uname, password, dataString, smsUrl,counter);	
-				 
-				 GenericExceptionLog.log("returnCode : smsAuthConnectMethodRetry "+returnCode,COMPONENTNAME);
-				 }
-				 GenericExceptionLog.exceptionJava(e,"Exception in smsAuthConnectMethodRetry ", COMPONENTNAME);
-				
-			}
-			
-			}
-			else
-			{
-				GenericExceptionLog.log("smsAuthConnectMethodRetry :: Inside count else Block", COMPONENTNAME);
-			}
-			
-	
-			return returnCode;
-			
-		}
-	
-	 private String prepAuthStr(String unm, String pswd) {
-		    String authString = unm + ":" + pswd;
-		    return "Basic " + new BASE64Encoder().encode(authString.getBytes());
-		  }
-}
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    public boolean sendSmsNewCode(SmsDTO smsDTO) {
-
-        logger.info("Now new webClient code gonna execute", smsDTO);
-        logger.info("ClassName - SmsClient,MethodName - sendSMS,Method-start");
-        System.out.println("Now new webClient code gonna execute: " + smsDTO);
-        HttpStatusCode status = getWebClient().post()
-                .uri(smsURL)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .header(HttpHeaders.AUTHORIZATION, createBasicAuthHeader(smsDTO.getUserName(), smsDTO.getPwd()))
-                .bodyValue(getSMSData(smsDTO)).retrieve()
-                .onStatus(HttpStatusCode::isError, response -> response
-                        .bodyToMono(String.class)
-                        .doOnNext(error -> logger.error("Error in SMS response: {}", error))
-                        .then(Mono.error(new NotificationException(
-                                String.valueOf(response.statusCode().value()),
-                                "Error during request " + response.headers().asHttpHeaders()))))
-                .toBodilessEntity()
-                .map(ResponseEntity::getStatusCode)
-                .block(); // Blocking for simplicity in this example
-
-        assert status != null;
-        if (status.is2xxSuccessful()) {
-            return true;
-        } else {
-            throw new NotificationException(NotificationConstant.FAILURE_CODE, MessageFormat.format(NotificationConstant.FAILURE_MSG, "SMS"));
-        }
-    }
-
-error_code=10008&error_desc=MESSAGE_TEMPLATE_VERIFY_FAILED&umid=11250108115038315248070032
-
-
-public boolean sendSmsNewCode(SmsDTO smsDTO) {
-    logger.info("Now new WebClient code gonna execute", smsDTO);
-    logger.info("ClassName - SmsClient, MethodName - sendSms, Method-start");
-    System.out.println("Now new WebClient code gonna execute: " + smsDTO);
-
-    // Prepare a Map to store error details if needed
-    Map<String, String> errorDetails = new HashMap<>();
-
-    HttpStatusCode status = getWebClient().post()
-            .uri(smsURL)
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-            .header(HttpHeaders.AUTHORIZATION, createBasicAuthHeader(smsDTO.getUserName(), smsDTO.getPwd()))
-            .bodyValue(getSMSData(smsDTO))
-            .retrieve()
-            .onStatus(HttpStatusCode::isError, response -> response
-                    .bodyToMono(String.class)
-                    .flatMap(errorBody -> {
-                        // Parse error response and store in Map
-                        Arrays.stream(errorBody.split("&"))
-                                .map(pair -> pair.split("="))
-                                .forEach(pair -> errorDetails.put(pair[0], pair.length > 1 ? pair[1] : ""));
-
-                        logger.error("Error in SMS response: {}", errorDetails);
-
-                        // Create and throw a custom exception with parsed error details
-                        return Mono.error(new NotificationException(
-                                String.valueOf(response.statusCode().value()),
-                                "Error during request: " + errorDetails.getOrDefault("error_desc", "Unknown error")
-                        ));
-                    }))
-            .toBodilessEntity()
-            .map(ResponseEntity::getStatusCode)
-            .block(); // Blocking for simplicity in this example
-
-    assert status != null;
-    if (status.is2xxSuccessful()) {
-        return true;
-    } else {
-        throw new NotificationException(NotificationConstant.FAILURE_CODE, 
-                MessageFormat.format(NotificationConstant.FAILURE_MSG, "SMS"));
-    }
-}
------------------------------------------------------
-
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.util.StringUtils;
-
-import javax.persistence.criteria.Predicate;
-import java.time.LocalDateTime;
-
-public class MerchantUserSpecification {
-
-    public static Specification<MerchantUser> searchUsers(
-            String userName,
-            String name,
-            String mobile,
-            LocalDateTime fromDate,
-            LocalDateTime toDate,
-            String status) {
-        return (root, query, criteriaBuilder) -> {
-            Predicate predicate = criteriaBuilder.conjunction();
-
-            // If all parameters are null, return all data
-            if (!StringUtils.hasText(userName) &&
-                !StringUtils.hasText(name) &&
-                !StringUtils.hasText(mobile) &&
-                fromDate == null &&
-                toDate == null &&
-                !StringUtils.hasText(status)) {
-                return predicate; // No filters applied, return all data
-            }
-
-            // Filter by userName
-            if (StringUtils.hasText(userName)) {
-                predicate = criteriaBuilder.and(predicate,
-                        criteriaBuilder.equal(root.get("userId"), userName));
-            }
-
-            // Filter by name (firstName, middleName, lastName combined)
-            if (StringUtils.hasText(name)) {
-                Predicate namePredicate = criteriaBuilder.or(
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + name.toLowerCase() + "%"),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("middleName")), "%" + name.toLowerCase() + "%"),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + name.toLowerCase() + "%")
-                );
-                predicate = criteriaBuilder.and(predicate, namePredicate);
-            }
-
-            // Filter by mobile
-            if (StringUtils.hasText(mobile)) {
-                predicate = criteriaBuilder.and(predicate,
-                        criteriaBuilder.equal(root.get("mobilePhone"), mobile));
-            }
-
-            // Filter by date range (fromDate and toDate)
-            if (fromDate != null) {
-                predicate = criteriaBuilder.and(predicate,
-                        criteriaBuilder.greaterThanOrEqualTo(root.get("createdDate"), fromDate));
-            }
-            if (toDate != null) {
-                predicate = criteriaBuilder.and(predicate,
-                        criteriaBuilder.lessThanOrEqualTo(root.get("createdDate"), toDate));
-            }
-
-            // Filter by status
-            if (StringUtils.hasText(status)) {
-                predicate = criteriaBuilder.and(predicate,
-                        criteriaBuilder.equal(root.get("status"), status));
-            }
-
-            return predicate;
-        };
-    }
-}
-------------------------------------------------------
-
-
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.util.StringUtils;
-
-import javax.persistence.criteria.Predicate;
-import java.time.LocalDateTime;
-
-public class MerchantUserSpecification {
-
-    public static Specification<MerchantUser> searchUsers(
-            String userName,
-            String name,
-            String mobile,
-            LocalDateTime fromDate,
-            LocalDateTime toDate,
-            String status) {
-        return (root, query, criteriaBuilder) -> {
-            Predicate predicate = criteriaBuilder.conjunction();
-
-            // If all parameters are null, return all data
-            if (!StringUtils.hasText(userName) &&
-                !StringUtils.hasText(name) &&
-                !StringUtils.hasText(mobile) &&
-                fromDate == null &&
-                toDate == null &&
-                !StringUtils.hasText(status)) {
-                return predicate; // No filters applied, return all data
-            }
-
-            // Filter by userName (partial match)
-            if (StringUtils.hasText(userName)) {
-                predicate = criteriaBuilder.and(predicate,
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("userId")), "%" + userName.toLowerCase() + "%"));
-            }
-
-            // Filter by name (firstName, middleName, lastName combined)
-            if (StringUtils.hasText(name)) {
-                Predicate namePredicate = criteriaBuilder.or(
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + name.toLowerCase() + "%"),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("middleName")), "%" + name.toLowerCase() + "%"),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + name.toLowerCase() + "%")
-                );
-                predicate = criteriaBuilder.and(predicate, namePredicate);
-            }
-
-            // Filter by mobile (partial match)
-            if (StringUtils.hasText(mobile)) {
-                predicate = criteriaBuilder.and(predicate,
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("mobilePhone")), "%" + mobile.toLowerCase() + "%"));
-            }
-
-            // Filter by date range (fromDate and toDate)
-            if (fromDate != null) {
-                predicate = criteriaBuilder.and(predicate,
-                        criteriaBuilder.greaterThanOrEqualTo(root.get("createdDate"), fromDate));
-            }
-            if (toDate != null) {
-                predicate = criteriaBuilder.and(predicate,
-                        criteriaBuilder.lessThanOrEqualTo(root.get("createdDate"), toDate));
-            }
-
-            // Filter by status
-            if (StringUtils.hasText(status)) {
-                predicate = criteriaBuilder.and(predicate,
-                        criteriaBuilder.equal(root.get("status"), status));
-            }
-
-            return predicate;
-        };
-    }
-}
------------------------------
-
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.util.StringUtils;
-
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
-
-public class MerchantUserSpecification {
-
-    public static Specification<MerchantUser> searchUsers(
-            String userName,
-            String name,
-            String mobile,
-            Long fromDate,
-            Long toDate,
-            String status) {
-        return (root, query, criteriaBuilder) -> {
-            Predicate predicate = criteriaBuilder.conjunction();
-
-            if (StringUtils.hasText(userName)) {
-                predicate = criteriaBuilder.and(predicate, getUserNamePredicate(root, criteriaBuilder, userName));
-            }
-
-            if (StringUtils.hasText(name)) {
-                predicate = criteriaBuilder.and(predicate, getNamePredicate(root, criteriaBuilder, name));
-            }
-
-            if (StringUtils.hasText(mobile)) {
-                predicate = criteriaBuilder.and(predicate, getMobilePredicate(root, criteriaBuilder, mobile));
-            }
-
-            if (fromDate != null) {
-                predicate = criteriaBuilder.and(predicate, getFromDatePredicate(root, criteriaBuilder, fromDate));
-            }
-
-            if (toDate != null) {
-                predicate = criteriaBuilder.and(predicate, getToDatePredicate(root, criteriaBuilder, toDate));
-            }
-
-            if (StringUtils.hasText(status)) {
-                predicate = criteriaBuilder.and(predicate, getStatusPredicate(root, criteriaBuilder, status));
-            }
-
-            return predicate;
-        };
-    }
-
-    private static Predicate getUserNamePredicate(Root<MerchantUser> root, CriteriaBuilder criteriaBuilder, String userName) {
-        return criteriaBuilder.like(criteriaBuilder.lower(root.get("userId")), "%" + userName.toLowerCase() + "%");
-    }
-
-    private static Predicate getNamePredicate(Root<MerchantUser> root, CriteriaBuilder criteriaBuilder, String name) {
-        return criteriaBuilder.or(
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + name.toLowerCase() + "%"),
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("middleName")), "%" + name.toLowerCase() + "%"),
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + name.toLowerCase() + "%")
-        );
-    }
-
-    private static Predicate getMobilePredicate(Root<MerchantUser> root, CriteriaBuilder criteriaBuilder, String mobile) {
-        return criteriaBuilder.like(criteriaBuilder.lower(root.get("mobilePhone")), "%" + mobile.toLowerCase() + "%");
-    }
-
-    private static Predicate getFromDatePredicate(Root<MerchantUser> root, CriteriaBuilder criteriaBuilder, Long fromDate) {
-        return criteriaBuilder.greaterThanOrEqualTo(root.get("createdDate"), fromDate);
-    }
-
-    private static Predicate getToDatePredicate(Root<MerchantUser> root, CriteriaBuilder criteriaBuilder, Long toDate) {
-        return criteriaBuilder.lessThanOrEqualTo(root.get("createdDate"), toDate);
-    }
-
-    private static Predicate getStatusPredicate(Root<MerchantUser> root, CriteriaBuilder criteriaBuilder, String status) {
-        return criteriaBuilder.equal(root.get("status"), status);
-    }
-}
+Migrating to Spring Security CSRF is the only long-term, secure, and maintainable solution to fix the OWASP CSRFGuard vulnerability.
+It simplifies token handling, strengthens request validation, and ensures compliance with current security best practices.
